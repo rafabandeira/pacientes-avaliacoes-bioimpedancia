@@ -1,0 +1,10 @@
+/* assets/css/admin.css */
+.pab-grid { display:grid; grid-template-columns: repeat(2, minmax(240px, 1fr)); gap:12px; }
+.pab-ref { font-size:11px; color:#666; margin-top:4px; }
+.pab-avatars-line { display:flex; gap:8px; align-items:center; }
+.pab-avatar { border:2px solid transparent; padding:4px; border-radius:6px; background:transparent; }
+.pab-avatar.active { border-color:#228be6; background:rgba(34,139,230,0.12); }
+.pab-list { margin:8px 0; }
+.pab-list li { margin:4px 0; }
+.pab-charts canvas { max-width: 100%; margin: 16px 0; }
+.pab-conditional { display:none; }
