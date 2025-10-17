@@ -1,4 +1,4 @@
-<?php // includes/cpt-bioimpedancia.php - AJUSTADO: Slug para pab_bioimpedancia
+<?php // includes/cpt-bioimpedancia.php - ATUALIZADO: Permite visualização pública
 
 if (!defined('ABSPATH')) exit;
 
@@ -21,20 +21,19 @@ add_action('init', function() {
 
     $args = [
         'labels'             => $labels,
-        'public'             => false,
-        'publicly_queryable' => false,
+        'public'             => true,  // ALTERADO: true para permitir URL pública
+        'publicly_queryable' => true,  // ALTERADO: true para permitir acesso via URL
         'show_ui'            => true,
-        'show_in_menu'       => 'edit.php?post_type=pab_paciente', // Como submenu de Pacientes
+        'show_in_menu'       => 'edit.php?post_type=pab_paciente',
         'query_var'          => true,
-        'rewrite'            => false, // Não precisa de URL pública
+        'rewrite'            => ['slug' => 'bioimpedancia'], // ADICIONADO: URL amigável
         'capability_type'    => 'post',
         'has_archive'        => false,
         'hierarchical'       => false,
         'menu_icon'          => 'dashicons-chart-area', 
-        'supports'           => [], // SEM 'title' e 'editor'
+        'supports'           => [],
         'show_in_rest'       => true,
-        'parent_item_colon'  => __('Paciente:', 'pab'), 
     ];
 
-    register_post_type('pab_bioimpedancia', $args); // SLUG CORRIGIDO: pab_bioimpedancia
+    register_post_type('pab_bioimpedancia', $args);
 });
