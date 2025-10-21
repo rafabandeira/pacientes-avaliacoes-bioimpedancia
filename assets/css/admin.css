@@ -1,35 +1,178 @@
-/* assets/css/admin.css */
+/* assets/css/admin.css - Design Moderno para Meta Boxes */
 
-/* Grid de campos 2 colunas */
-.pab-grid { 
-    display: grid; 
-    grid-template-columns: repeat(2, minmax(240px, 1fr)); 
-    gap: 12px; 
+/* ================================================================
+   GRID PRINCIPAL E LAYOUTS
+   ================================================================ */
+
+/* Grid de campos 2 colunas com espaçamento aprimorado */
+.pab-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
 }
 
-/* Texto de referência */
-.pab-ref { 
-    font-size: 11px; 
-    color: #666; 
-    margin-top: 4px; 
+.pab-grid label {
+    display: flex;
+    flex-direction: column;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 12px;
 }
+
+.pab-grid label strong {
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #374151;
+}
+
+.pab-grid input[type="number"],
+.pab-grid input[type="text"],
+.pab-grid select,
+.pab-grid textarea {
+    padding: 10px 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    background: #ffffff;
+    color: #374151;
+}
+
+.pab-grid input:focus,
+.pab-grid select:focus,
+.pab-grid textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    transform: translateY(-1px);
+}
+
+/* ================================================================
+   METABOX STYLING - DESIGN CARDS MODERNOS
+   ================================================================ */
+
+.postbox {
+    border: none !important;
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    border-radius: 12px !important;
+    margin-bottom: 20px !important;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+}
+
+.postbox .hndle {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 16px 20px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.postbox .inside {
+    padding: 24px !important;
+    background: white;
+    border-radius: 0 0 12px 12px;
+}
+
+/* Metabox especial para avatares */
+.postbox-bio-avatars .hndle {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+}
+
+/* ================================================================
+   ALERTAS E NOTIFICAÇÕES ESTILIZADOS
+   ================================================================ */
+
+.pab-alert {
+    padding: 16px 20px;
+    border-radius: 10px;
+    margin: 16px 0;
+    font-size: 14px;
+    line-height: 1.6;
+    position: relative;
+    overflow: hidden;
+}
+
+.pab-alert::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: currentColor;
+}
+
+.pab-alert-warning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+    border: 1px solid #f59e0b;
+}
+
+.pab-alert-info {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1e40af;
+    border: 1px solid #3b82f6;
+}
+
+.pab-alert-success {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+/* ================================================================
+   BOTÕES MODERNOS
+   ================================================================ */
+
+.button-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 12px 24px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 14px 0 rgba(102, 126, 234, 0.39) !important;
+}
+
+.button-primary:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+}
+
+.button-large {
+    font-size: 14px !important;
+    padding: 16px 32px !important;
+}
+
+/* ================================================================
+   CONTAINER DOS AVATARES - DESIGN COMPLETAMENTE NOVO
+   ================================================================ */
 
 /* Container dos avatares - SEM ESPAÇAMENTO HORIZONTAL */
-.pab-avatars-line { 
+.pab-avatars-line {
     display: flex;
     flex-wrap: nowrap;
     gap: 0; /* SEM GAP */
-    padding: 15px 0; /* Apenas padding vertical */
+    padding: 20px 0 15px 0; /* Padding superior maior para o ícone */
     width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
 }
 
 /* Cada avatar individual - SEM PADDING HORIZONTAL */
-.pab-avatar { 
+.pab-avatar {
     border: 3px solid transparent;
     padding: 0; /* SEM PADDING */
-    margin: 20px 0; /* SEM MARGIN */
+    margin: 0; /* SEM MARGIN */
     border-radius: 0; /* SEM BORDER RADIUS para ficarem grudados */
     background: #f8f9fa;
     transition: all 0.3s ease;
@@ -57,7 +200,7 @@
 }
 
 /* Avatar ativo */
-.pab-avatar.active { 
+.pab-avatar.active {
     border-color: #228be6;
     background: rgba(34, 139, 230, 0.15);
     transform: scale(1.1);
@@ -97,99 +240,291 @@
     justify-content: center;
     font-weight: bold;
     font-size: 13px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
 }
 
-/* Scrollbar customizada */
+/* ================================================================
+   SCROLLBAR CUSTOMIZADA MODERNA
+   ================================================================ */
+
 .pab-avatars-line::-webkit-scrollbar {
-    height: 6px;
+    height: 8px;
 }
 
 .pab-avatars-line::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
+    background: #f1f5f9;
+    border-radius: 8px;
 }
 
 .pab-avatars-line::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 3px;
+    background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+    border-radius: 8px;
 }
 
 .pab-avatars-line::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
 }
 
-/* Listas personalizadas */
-.pab-list { 
-    margin: 8px 0; 
-}
+/* ================================================================
+   BADGES DE CLASSIFICAÇÃO - DESIGN NOVO
+   ================================================================ */
 
-.pab-list li { 
-    margin: 4px 0; 
-}
-
-/* Container dos gráficos */
-.pab-charts canvas { 
-    max-width: 100%; 
-    margin: 16px 0; 
-}
-
-/* Caixas condicionais (toggle) */
-.pab-conditional { 
-    display: none; 
-}
-
-/* Badges de classificação */
-.pab-badge-normal {
-    display: inline-block;
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-size: 11px;
+.pab-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
     font-weight: 600;
-    background: #d4edda;
-    color: #155724;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 2px 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+.pab-badge::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transition: left 0.5s;
+}
+
+.pab-badge:hover::before {
+    left: 100%;
+}
+
+.pab-badge-normal {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .pab-badge-abaixo {
-    display: inline-block;
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-size: 11px;
-    font-weight: 600;
-    background: #fff3cd;
-    color: #856404;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
-.pab-badge-acima1,
-.pab-badge-acima2,
-.pab-badge-acima3 {
-    display: inline-block;
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-size: 11px;
-    font-weight: 600;
-    background: #f8d7da;
-    color: #721c24;
+.pab-badge-acima1 {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
 }
 
+.pab-badge-acima2 {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.pab-badge-acima3,
 .pab-badge-alto1,
 .pab-badge-alto2,
 .pab-badge-alto3 {
-    display: inline-block;
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-size: 11px;
-    font-weight: 600;
-    background: #dc3545;
+    background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
     color: white;
+    box-shadow: 0 4px 12px rgba(153, 27, 27, 0.4);
 }
 
-/* Responsividade */
+/* ================================================================
+   TABELAS E LISTAS ESTILIZADAS
+   ================================================================ */
+
+.pab-list {
+    margin: 16px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.pab-list li {
+    margin: 8px 0;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 8px;
+    border-left: 4px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.pab-list li:hover {
+    border-left-color: #3b82f6;
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.pab-list li strong {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+/* ================================================================
+   CONTAINER DOS GRÁFICOS
+   ================================================================ */
+
+.pab-charts {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 20px 0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.pab-charts canvas {
+    max-width: 100%;
+    margin: 16px 0;
+    border-radius: 8px;
+}
+
+/* ================================================================
+   LINK DE COMPARTILHAMENTO ESTILIZADO
+   ================================================================ */
+
+.pab-share-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+    border-radius: 12px;
+    color: white;
+    margin: 16px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.pab-share-container::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.05) 50%,
+        transparent 70%
+    );
+    transform: rotate(45deg);
+    animation: shine 3s infinite;
+}
+
+@keyframes shine {
+    0% {
+        transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+    100% {
+        transform: translateX(100%) translateY(100%) rotate(45deg);
+    }
+}
+
+.pab-share-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    opacity: 0.9;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+}
+
+.pab-share-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: white;
+    color: #374151;
+    font-family: "Courier New", monospace;
+    transition: all 0.3s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pab-share-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+.pab-share-hint {
+    font-size: 11px;
+    text-align: center;
+    opacity: 0.9;
+    margin-top: 12px;
+}
+
+/* ================================================================
+   TEXTO DE REFERÊNCIA E HELPERS
+   ================================================================ */
+
+.pab-ref {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 8px;
+    font-style: italic;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border-left: 3px solid #d1d5db;
+}
+
+.description {
+    color: #6b7280 !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    margin-top: 12px !important;
+    padding: 12px 16px !important;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important;
+    border-radius: 8px !important;
+    border-left: 4px solid #e5e7eb !important;
+}
+
+/* ================================================================
+   CAIXAS CONDICIONAIS (TOGGLE)
+   ================================================================ */
+
+.pab-conditional {
+    display: none;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ================================================================
+   RESPONSIVIDADE APRIMORADA
+   ================================================================ */
+
+@media screen and (max-width: 1024px) {
+    .pab-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .postbox .inside {
+        padding: 20px !important;
+    }
+}
+
 @media screen and (max-width: 782px) {
     .pab-avatar {
         min-height: 60px;
     }
-    
+
     .pab-avatar.active::after {
         width: 20px;
         height: 20px;
@@ -197,7 +532,7 @@
         top: -6px;
         right: -6px;
     }
-    
+
     .pab-grid {
         grid-template-columns: 1fr;
     }
@@ -207,10 +542,67 @@
     .pab-avatar {
         min-height: 50px;
     }
-    
+
     .pab-avatar.active::after {
         width: 18px;
         height: 18px;
         font-size: 10px;
+    }
+}
+
+/* ================================================================
+   LOADING E ANIMAÇÕES
+   ================================================================ */
+
+.pab-loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ================================================================
+   MICRO-INTERAÇÕES E EFEITOS
+   ================================================================ */
+
+.pab-fade-in {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Efeito de destaque ao salvar */
+.pab-highlight {
+    animation: highlight 2s ease-out;
+}
+
+@keyframes highlight {
+    0% {
+        background-color: #fef3c7;
+    }
+    100% {
+        background-color: transparent;
     }
 }

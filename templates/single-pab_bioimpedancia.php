@@ -398,7 +398,7 @@ get_header();
             <div class="pab-info-row">
                 <span class="pab-info-label">Diferença</span>
                 <span class="pab-info-value" style="color: <?php echo $delta < 0 ? '#dc3545' : '#28a745'; ?>; font-weight: 700;">
-                    <?php echo $delta < 0 ? '+ ' : ($delta > 0 ? '- ' : ''); ?><?php echo esc_html(abs($delta)); ?> anos
+                    <?php echo $delta > 0 ? '+' : ''; ?><?php echo esc_html($delta); ?> anos
                     <?php if ($delta < 0): ?>
                         <small style="display: block; font-size: 11px; font-weight: 400;">(corpo mais velho que a idade real)</small>
                     <?php else: ?>
