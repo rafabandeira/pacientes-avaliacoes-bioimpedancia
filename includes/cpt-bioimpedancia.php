@@ -18,7 +18,7 @@ add_action("init", function () {
         "new_item" => __("Nova Bioimpedância", "pab"),
         "edit_item" => __("Editar Bioimpedância", "pab"),
         "view_item" => __("Ver Bioimpedância", "pab"),
-        "all_items" => __("Bioimpedâncias dos Pacientes", "pab"),
+        "all_items" => __("Bioimpedâncias", "pab"),
         "search_items" => __("Buscar Bioimpedâncias", "pab"),
         "parent_item_colon" => __("Paciente:", "pab"),
         "not_found" => __("Nenhuma bioimpedância encontrada.", "pab"),

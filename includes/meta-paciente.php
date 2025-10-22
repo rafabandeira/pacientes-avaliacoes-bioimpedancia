@@ -84,6 +84,21 @@ add_action(
         ) {
             return;
         }
+
+        // Garantir que o paciente seja sempre publicado
+        $post = get_post($post_id);
+        if ($post && $post->post_status !== 'publish') {
+            global $wpdb;
+            $wpdb->update(
+                $wpdb->posts,
+                ['post_status' => 'publish'],
+                ['ID' => $post_id],
+                ['%s'],
+                ['%d']
+            );
+            clean_post_cache($post_id);
+        }
+
         $fields = [
             "pab_nome",
             "pab_genero",
@@ -191,6 +206,17 @@ add_action("load-post-new.php", function () {
         <script>
         document.addEventListener('DOMContentLoaded', function() {
             const patientId = <?php echo (int) $patient_id; ?>;
+
+            // Armazenar na sessão via AJAX
+            if (typeof jQuery !== 'undefined') {
+                jQuery.post(ajaxurl, {
+                    action: 'pab_store_attachment',
+                    patient_id: patientId,
+                    post_type: '<?php echo esc_js($pt); ?>',
+                    nonce: '<?php echo wp_create_nonce("pab_attachment"); ?>'
+                });
+            }
+
             // cria um input hidden com o paciente
             const form = document.getElementById('post');
             if (form) {
@@ -199,9 +225,44 @@ add_action("load-post-new.php", function () {
                 hidden.name = 'pab_paciente_id';
                 hidden.value = patientId;
                 form.appendChild(hidden);
+
+                // Adicionar ao título para debug
+                const titleDiv = document.getElementById('titlediv');
+                if (titleDiv && titleDiv.style.display === 'none') {
+                    const titleInput = titleDiv.querySelector('#title');
+                    if (titleInput && !titleInput.value) {
+                        titleInput.value = 'Vinculado ao paciente ID: ' + patientId;
+                    }
+                }
             }
         });
         </script>
         <?php
     });
+});
+
+// Handler AJAX para armazenar informação de attachment temporariamente
+add_action("wp_ajax_pab_store_attachment", function () {
+    if (!wp_verify_nonce($_POST["nonce"], "pab_attachment")) {
+        wp_die("Nonce inválido");
+    }
+
+    $patient_id = (int) $_POST["patient_id"];
+    $post_type = sanitize_text_field($_POST["post_type"]);
+
+    if ($patient_id && in_array($post_type, ["pab_avaliacao", "pab_bioimpedancia"])) {
+        // Armazenar na sessão do WordPress
+        if (!session_id()) {
+            session_start();
+        }
+        $_SESSION["pab_pending_attachment"] = [
+            "patient_id" => $patient_id,
+            "post_type" => $post_type,
+            "timestamp" => time()
+        ];
+
+        wp_send_json_success(["stored" => true]);
+    }
+
+    wp_send_json_error(["message" => "Dados inválidos"]);
 });

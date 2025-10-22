@@ -473,33 +473,44 @@ add_action(
             }
         }
 
-        // Atualizar título com ID real se necessário
+        // Garantir que a avaliação seja sempre publicada
         $current_post = get_post($post_id);
-        if (
-            $current_post &&
-            strpos($current_post->post_title, "- NOVO") !== false
-        ) {
-            $patient_id = (int) get_post_meta(
-                $post_id,
-                "pab_paciente_id",
-                true,
+        if ($current_post && $current_post->post_status !== 'publish') {
+            global $wpdb;
+            $wpdb->update(
+                $wpdb->posts,
+                ['post_status' => 'publish'],
+                ['ID' => $post_id],
+                ['%s'],
+                ['%d']
             );
-            if ($patient_id) {
-                $patient_name =
-                    get_the_title($patient_id) ?: "Paciente Sem Nome";
-                $new_title = trim("$patient_name - Avaliação - $post_id");
-
-                global $wpdb;
-                $wpdb->update(
-                    $wpdb->posts,
-                    ["post_title" => $new_title],
-                    ["ID" => $post_id],
-                    ["%s"],
-                    ["%d"],
-                );
-                clean_post_cache($post_id);
-            }
+            clean_post_cache($post_id);
         }
+
+        // Sempre atualizar o título da avaliação
+        $patient_id = (int) get_post_meta(
+            $post_id,
+            "pab_paciente_id",
+            true,
+        );
+
+        if ($patient_id) {
+            $patient_name = get_the_title($patient_id) ?: "Paciente Sem Nome";
+            $new_title = trim("$patient_name - Avaliação - $post_id");
+        } else {
+            $new_title = "ITEM ORFAO - PAB_AVALIACAO";
+        }
+
+        // Atualizar título sempre
+        global $wpdb;
+        $wpdb->update(
+            $wpdb->posts,
+            ["post_title" => $new_title],
+            ["ID" => $post_id],
+            ["%s"],
+            ["%d"],
+        );
+        clean_post_cache($post_id);
     },
     10,
     1,

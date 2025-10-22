@@ -2,91 +2,315 @@
 /**
  * Template personalizado para visualização de Bioimpedância
  * Este template é carregado pelo plugin, não pelo tema
+ * Atualizado para ser mais semelhante à página de edição
  */
 
-if (!defined('ABSPATH')) exit;
+if (!defined("ABSPATH")) {
+    exit();
+}
+
+/**
+ * Função para adicionar OpenGraph tags no head
+ */
+function pab_add_bioimpedancia_opengraph(
+    $post_id,
+    $patient_id,
+    $patient_name,
+    $patient_gender,
+    $c_imc,
+) {
+    if (is_admin()) {
+        return;
+    }
+
+    // Determinar avatar baseado no IMC
+    $nivel = $c_imc["nivel"];
+    $prefix = $patient_gender === "F" ? "f" : "m";
+
+    // Usar avatar cropped focado na cabeça para OpenGraph
+    // Primeira opção: arquivo gerado em cache
+    $avatar_img_cropped = pab_generate_avatar_head_crop(
+        $patient_gender,
+        $nivel,
+    );
+
+    // Segunda opção: endpoint dinâmico
+    if (!$avatar_img_cropped) {
+        $avatar_img_cropped = add_query_arg(
+            [
+                "pab_avatar_head" => "1",
+                "gender" => $patient_gender,
+                "level" => $nivel,
+            ],
+            home_url(),
+        );
+    }
+
+    // Fallback para imagem original se cropped falhar
+    $avatar_img =
+        $avatar_img_cropped ?:
+        PAB_URL . "assets/img/avatars/{$prefix}-{$nivel}.png";
+
+    // Dados básicos
+    $title = get_the_title() . " - Relatório de Bioimpedância";
+    $description = "Relatório completo de bioimpedância de {$patient_name}. Análise detalhada da composição corporal com base nos padrões da OMS.";
+    $url = get_permalink();
+
+    // Labels para classificação IMC
+    $labels_imc = [
+        "abaixo" => "Baixo Peso",
+        "normal" => "Normal",
+        "acima1" => "Sobrepeso",
+        "acima2" => "Obesidade I",
+        "acima3" => "Obesidade II",
+        "alto1" => "Obesidade III",
+        "alto2" => "Obesidade III",
+        "alto3" => "Obesidade III",
+    ];
+
+    $classificacao = $labels_imc[$nivel] ?? "Normal";
+    $description .= " Classificação IMC: {$classificacao}.";
+    ?>
+    <!-- OpenGraph Tags -->
+    <meta property="og:title" content="<?php echo esc_attr($title); ?>" />
+    <meta property="og:description" content="<?php echo esc_attr(
+        $description,
+    ); ?>" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="<?php echo esc_url($url); ?>" />
+    <meta property="og:image" content="<?php echo esc_url($avatar_img); ?>" />
+    <meta property="og:image:width" content="400" />
+    <meta property="og:image:height" content="400" />
+    <meta property="og:image:alt" content="Avatar representativo da composição corporal - <?php echo esc_attr(
+        $classificacao,
+    ); ?>" />
+    <meta property="og:site_name" content="<?php echo esc_attr(
+        get_bloginfo("name"),
+    ); ?>" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="<?php echo esc_attr($title); ?>" />
+    <meta name="twitter:description" content="<?php echo esc_attr(
+        $description,
+    ); ?>" />
+    <meta name="twitter:image" content="<?php echo esc_url($avatar_img); ?>" />
+
+    <!-- Meta Description -->
+    <meta name="description" content="<?php echo esc_attr($description); ?>" />
+
+    <!-- Dados Estruturados JSON-LD -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "MedicalTest",
+        "name": "<?php echo esc_js($title); ?>",
+        "description": "<?php echo esc_js($description); ?>",
+        "url": "<?php echo esc_url($url); ?>",
+        "image": "<?php echo esc_url($avatar_img); ?>",
+        "about": {
+            "@type": "Person",
+            "name": "<?php echo esc_js($patient_name); ?>",
+            "gender": "<?php echo $patient_gender === "F"
+                ? "Female"
+                : "Male"; ?>"
+        },
+        "provider": {
+            "@type": "Organization",
+            "name": "<?php echo esc_js(get_bloginfo("name")); ?>",
+            "url": "<?php echo esc_url(home_url()); ?>"
+        },
+        "dateCreated": "<?php echo get_the_date("c"); ?>",
+        "dateModified": "<?php echo get_the_modified_date("c"); ?>"
+    }
+    </script>
+    <?php
+}
 
 // Obter dados do post atual
 $post_id = get_the_ID();
-$patient_id = (int) pab_get($post_id, 'pab_paciente_id');
+$patient_id = (int) pab_get($post_id, "pab_paciente_id");
 
 // Dados do paciente
-$patient_name = pab_get($patient_id, 'pab_nome', 'Paciente não identificado');
-$patient_gender = pab_get($patient_id, 'pab_genero', 'M');
-$patient_birth = pab_get($patient_id, 'pab_nascimento');
-$patient_height = pab_get($patient_id, 'pab_altura');
+$patient_name = pab_get($patient_id, "pab_nome", "Paciente não identificado");
+$patient_gender = pab_get($patient_id, "pab_genero", "M");
+$patient_birth = pab_get($patient_id, "pab_nascimento");
+$patient_height = pab_get($patient_id, "pab_altura");
 
 // Dados da bioimpedância
-$peso = pab_get($post_id, 'pab_bi_peso');
-$gordura = pab_get($post_id, 'pab_bi_gordura_corporal');
-$musculo = pab_get($post_id, 'pab_bi_musculo_esq');
-$gordura_visc = pab_get($post_id, 'pab_bi_gordura_visc');
-$metab_basal = pab_get($post_id, 'pab_bi_metab_basal');
-$idade_corp = pab_get($post_id, 'pab_bi_idade_corporal');
+$peso = pab_get($post_id, "pab_bi_peso");
+$gordura = pab_get($post_id, "pab_bi_gordura_corporal");
+$musculo = pab_get($post_id, "pab_bi_musculo_esq");
+$gordura_visc = pab_get($post_id, "pab_bi_gordura_visc");
+$metab_basal = pab_get($post_id, "pab_bi_metab_basal");
+$idade_corp = pab_get($post_id, "pab_bi_idade_corporal");
 
 // Calcular idade real
 $idade_real = pab_calc_idade_real($patient_id);
 
 // Calcular IMC
-$altura_m = $patient_height ? ($patient_height / 100.0) : null;
-$imc = ($altura_m && $peso) ? round($peso / ($altura_m * $altura_m), 1) : null;
+$altura_m = $patient_height ? $patient_height / 100.0 : null;
+$imc = $altura_m && $peso ? round($peso / ($altura_m * $altura_m), 1) : null;
 
 // Classificações OMS
-$c_imc = pab_oms_classificacao('imc', $imc, $patient_gender, $idade_real);
-$c_gc = pab_oms_classificacao('gc', $gordura, $patient_gender, $idade_real);
-$c_gv = pab_oms_classificacao('gv', $gordura_visc, $patient_gender, $idade_real);
-$c_musculo = pab_oms_classificacao('musculo', $musculo, $patient_gender, $idade_real);
-// CORREÇÃO: Passar a altura do paciente como contexto para calcular a faixa de peso ideal
-$c_peso = pab_oms_classificacao('peso', (float)$peso, $patient_gender, $idade_real, ['altura_cm' => $patient_height]);
+$c_imc = pab_oms_classificacao("imc", $imc, $patient_gender, $idade_real);
+$c_gc = pab_oms_classificacao("gc", $gordura, $patient_gender, $idade_real);
+$c_gv = pab_oms_classificacao(
+    "gv",
+    $gordura_visc,
+    $patient_gender,
+    $idade_real,
+);
+$c_musculo = pab_oms_classificacao(
+    "musculo",
+    $musculo,
+    $patient_gender,
+    $idade_real,
+);
+$c_peso = pab_oms_classificacao(
+    "peso",
+    (float) $peso,
+    $patient_gender,
+    $idade_real,
+    ["altura_cm" => $patient_height],
+);
+
+// Adicionar OpenGraph tags no wp_head
+add_action(
+    "wp_head",
+    function () use (
+        $post_id,
+        $patient_id,
+        $patient_name,
+        $patient_gender,
+        $c_imc,
+    ) {
+        pab_add_bioimpedancia_opengraph(
+            $post_id,
+            $patient_id,
+            $patient_name,
+            $patient_gender,
+            $c_imc,
+        );
+    },
+    1,
+);
 
 get_header();
 ?>
 
 <style>
     body {
-        background-color: #f8f9fa; /* Fundo mais suave */
+        background-color: #f8f9fa;
     }
-    .pab-single-container {
+
+    .pab-public-container {
         max-width: 1200px;
-        margin: 40px auto;
-        padding: 0 20px;
+        margin: 20px auto;
+        padding: 20px;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
-    .pab-header {
+
+    .pab-public-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 40px;
+        padding: 30px;
         border-radius: 12px;
         margin-bottom: 30px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        text-align: center;
     }
-    .pab-header h1 {
+
+    .pab-public-header h1 {
         margin: 0 0 10px 0;
-        font-size: 32px;
+        font-size: 28px;
         font-weight: 600;
     }
-    .pab-header .meta {
+
+    .pab-public-header .meta {
         opacity: 0.9;
         font-size: 14px;
     }
-    
-/* AVATARES */
-    .pab-avatar-section {
-        background: white;
+
+    /* Metaboxes estilizadas como na página de edição */
+    .pab-metabox {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         border-radius: 12px;
-        padding: 25px;
-        margin-bottom: 30px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        overflow: hidden;
     }
-    
-    .pab-avatar-section h2 {
-        margin: 0 0 20px 0;
-        font-size: 18px;
-        color: #333;
+
+    .pab-metabox-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 16px 20px;
         font-weight: 600;
-        text-align: center;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
-    
+
+    .pab-metabox-header.avatars {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .pab-metabox-content {
+        padding: 24px;
+        background: white;
+    }
+
+    /* Grid de dados similar ao admin */
+    .pab-data-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        margin: 20px 0;
+    }
+
+    .pab-data-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .pab-data-label {
+        font-weight: 600;
+        color: #374151;
+        font-size: 13px;
+        margin-bottom: 6px;
+    }
+
+    .pab-data-value {
+        padding: 10px 12px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+        background: #f8fafc;
+        color: #374151;
+    }
+
+    .pab-data-classification {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-left: 8px;
+    }
+
+    .pab-data-classification.normal { background: #d4edda; color: #155724; }
+    .pab-data-classification.abaixo { background: #fff3cd; color: #856404; }
+    .pab-data-classification.acima1 { background: #f8d7da; color: #721c24; }
+    .pab-data-classification.acima2 { background: #f8d7da; color: #721c24; }
+    .pab-data-classification.acima3 { background: #f8d7da; color: #721c24; }
+    .pab-data-classification.alto1, .pab-data-classification.alto2, .pab-data-classification.alto3 {
+        background: #dc3545; color: white;
+    }
+
+    /* Avatares estilizados */
     .pab-avatars-container {
         display: flex;
         flex-wrap: nowrap;
@@ -94,9 +318,10 @@ get_header();
         width: 100%;
         overflow-x: auto;
         overflow-y: hidden;
-        padding-bottom: 15px; /* Espaço para a scrollbar */
+        padding: 20px 0 15px 0;
+        margin: 20px 0;
     }
-    
+
     .pab-avatar-wrapper {
         flex-shrink: 0;
         flex-grow: 1;
@@ -105,11 +330,11 @@ get_header();
         flex-direction: column;
         align-items: center;
     }
-    
+
     .pab-avatar {
         border: 3px solid transparent;
         padding: 0;
-        margin: 30px 0;
+        margin: 0;
         border-radius: 0;
         background: #f8f9fa;
         transition: all 0.3s ease;
@@ -118,36 +343,36 @@ get_header();
         align-items: center;
         justify-content: center;
         position: relative;
-        min-height: 120px;
+        min-height: 100px;
         width: 100%;
     }
-    
+
     .pab-avatar-wrapper:first-child .pab-avatar {
-        border-top-left-radius: 12px;
-        border-bottom-left-radius: 12px;
+        border-top-left-radius: 8px;
+        border-bottom-left-radius: 8px;
     }
-    
+
     .pab-avatar-wrapper:last-child .pab-avatar {
-        border-top-right-radius: 12px;
-        border-bottom-right-radius: 12px;
+        border-top-right-radius: 8px;
+        border-bottom-right-radius: 8px;
     }
-    
+
     .pab-avatar.active {
         border-color: #228be6;
         background: rgba(34, 139, 230, 0.15);
-        transform: scale(1.1);
+        transform: scale(1.05);
         box-shadow: 0 4px 16px rgba(34, 139, 230, 0.4);
         z-index: 10;
-        border-radius: 12px !important;
+        border-radius: 8px !important;
     }
-    
+
     .pab-avatar img {
         width: 100%;
         height: 100%;
-        object-fit: contain; /* Alterado para contain para não cortar a imagem */
+        object-fit: contain;
         display: block;
     }
-    
+
     .pab-avatar.active::after {
         content: "✓";
         position: absolute;
@@ -165,7 +390,7 @@ get_header();
         font-size: 14px;
         box-shadow: 0 3px 10px rgba(0,0,0,0.3);
     }
-    
+
     .pab-avatar-label {
         margin-top: 8px;
         font-size: 11px;
@@ -176,244 +401,735 @@ get_header();
         letter-spacing: 0.5px;
         transition: all 0.3s ease;
     }
-    
+
     .pab-avatar-label.active {
         color: #228be6;
         font-weight: 700;
-        font-size: 13px;
+        font-size: 12px;
         transform: scale(1.05);
     }
-    
-    .pab-avatars-container::-webkit-scrollbar { height: 8px; }
-    .pab-avatars-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
-    .pab-avatars-container::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
-    .pab-avatars-container::-webkit-scrollbar-thumb:hover { background: #555; }
-    
-    .pab-grid-2 {
+
+    /* Cards de composição corporal */
+    .pab-comp-cards {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); /* Aumentado o minmax */
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 20px;
-        margin-bottom: 30px;
+        margin: 20px 0;
     }
-    .pab-card {
-        background: white;
+
+    .pab-comp-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         border-radius: 12px;
-        padding: 25px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        border-left: 4px solid #667eea;
+        padding: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #3b82f6;
     }
-    .pab-card h2 {
-        margin: 0 0 20px 0;
-        font-size: 18px;
-        color: #333;
+
+    .pab-comp-card h4 {
+        margin: 0 0 12px 0;
+        font-size: 16px;
         font-weight: 600;
-    }
-    .pab-info-row {
+        color: #1e293b;
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        padding: 12px 0;
-        border-bottom: 1px solid #f0f0f0;
     }
-    .pab-info-row:last-child {
-        border-bottom: none;
+
+    .pab-comp-card .icon {
+        font-size: 24px;
+        margin-right: 12px;
     }
-    .pab-info-label {
-        color: #666;
-        font-size: 14px;
+
+    .pab-comp-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1e40af;
+        margin-bottom: 8px;
     }
-    .pab-info-value {
-        font-weight: 600;
-        color: #333;
-        font-size: 14px;
-        text-align: right;
-    }
-    .pab-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
+
+    .pab-comp-ref {
         font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        margin-left: 8px;
+        color: #64748b;
+        background: #f1f5f9;
+        padding: 6px 10px;
+        border-radius: 6px;
+        margin-top: 8px;
     }
-    .pab-badge.normal { background: #d4edda; color: #155724; }
-    .pab-badge.abaixo { background: #fff3cd; color: #856404; }
-    .pab-badge.acima1 { background: #f8d7da; color: #721c24; }
-    .pab-badge.acima2 { background: #f8d7da; color: #721c24; }
-    .pab-badge.acima3 { background: #f8d7da; color: #721c24; }
-    .pab-badge.alto1, .pab-badge.alto2, .pab-badge.alto3 { background: #dc3545; color: white; }
-    
+
+    /* Alertas */
+    .pab-alert {
+        padding: 16px 20px;
+        border-radius: 10px;
+        margin: 16px 0;
+        font-size: 14px;
+        line-height: 1.6;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .pab-alert::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: currentColor;
+    }
+
+    .pab-alert-info {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        color: #1e40af;
+        border: 1px solid #3b82f6;
+    }
+
+    .pab-alert-warning {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        color: #92400e;
+        border: 1px solid #f59e0b;
+    }
+
+    /* Footer */
     .pab-footer {
         text-align: center;
         padding: 30px;
         color: #999;
         font-size: 13px;
-    }
-    
-    @media (max-width: 768px) {
-        .pab-header { padding: 30px; }
-        .pab-avatar { min-height: 80px; }
-        .pab-avatar.active::after { width: 24px; height: 24px; font-size: 12px; top: -8px; right: -8px; }
+        margin-top: 40px;
+        border-top: 1px solid #e5e7eb;
     }
 
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .pab-public-container {
+            margin: 10px;
+            padding: 15px;
+        }
+
+        .pab-public-header {
+            padding: 20px;
+        }
+
+        .pab-data-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .pab-comp-cards {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Print styles */
     @media print {
         body { background-color: #fff; }
-        .pab-single-container { max-width: 100%; margin: 0; padding: 0; box-shadow: none; }
-        .pab-header { background: #667eea !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .pab-card, .pab-avatar-section { box-shadow: none; border: 1px solid #ddd; }
+        .pab-public-container {
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+            box-shadow: none;
+        }
+        .pab-public-header {
+            background: #667eea !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .pab-metabox {
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
         .pab-footer { display: none; }
     }
 </style>
 
-<div class="pab-single-container">
-    
-    <div class="pab-header">
+<div class="pab-public-container">
+
+    <!-- Header do Paciente -->
+    <div class="pab-public-header">
         <h1><?php echo esc_html($patient_name); ?></h1>
         <div class="meta">
-            <strong>Data da Avaliação:</strong> <?php echo get_the_date('d/m/Y'); ?> às <?php echo get_the_time('H:i'); ?>
+            <strong>Data da Avaliação:</strong> <?php echo get_the_date(
+                "d/m/Y",
+            ); ?> às <?php echo get_the_time("H:i"); ?>
             <br>
-            <strong>Idade:</strong> <?php echo $idade_real ? esc_html($idade_real) . ' anos' : '—'; ?>
+            <strong>Idade:</strong> <?php echo $idade_real
+                ? esc_html($idade_real) . " anos"
+                : "—"; ?>
             <?php if ($patient_height): ?>
-                | <strong>Altura:</strong> <?php echo esc_html($patient_height); ?> cm
+                | <strong>Altura:</strong> <?php echo esc_html(
+                    $patient_height,
+                ); ?> cm
             <?php endif; ?>
         </div>
     </div>
 
-    <?php 
-    // CORREÇÃO: Avatares agora são baseados na classificação de IMC
-    $nivel = $c_imc['nivel'];
-    $prefix = $patient_gender === 'F' ? 'f' : 'm';
-    $levels = ['abaixo','normal','acima1','acima2','acima3','alto1','alto2','alto3'];
-    
-    // CORREÇÃO: Legendas mais claras baseadas na classificação de IMC
-    $labels_imc = [
-        'abaixo' => 'Baixo Peso',
-        'normal' => 'Normal',
-        'acima1' => 'Sobrepeso',
-        'acima2' => 'Obesidade I',
-        'acima3' => 'Obesidade II',
-        'alto1'  => 'Obesidade III',
-        'alto2'  => 'Obesidade III', // fallback
-        'alto3'  => 'Obesidade III', // fallback
-    ];
-    ?>
-    
-    <div class="pab-avatar-section">
-        <h2>📊 Representação Visual da Composição Corporal (IMC)</h2>
-        
-        <div class="pab-avatars-container">
-            <?php foreach ($levels as $lvl): ?>
-                <?php 
-                $active = ($lvl === $nivel) ? 'active' : '';
-                $img = PAB_URL . "assets/img/avatars/{$prefix}-{$lvl}.png";
-                ?>
-                <div class="pab-avatar-wrapper">
-                    <div class="pab-avatar <?php echo $active; ?>" title="<?php echo esc_attr($labels_imc[$lvl]); ?>">
-                        <img src="<?php echo esc_url($img); ?>" alt="<?php echo esc_attr($lvl); ?>">
+    <!-- Metabox: Avatares (OMS) -->
+    <div class="pab-metabox">
+        <div class="pab-metabox-header avatars">
+            <span>Avatares (OMS)</span>
+        </div>
+        <div class="pab-metabox-content">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 8px 0; color: #333; font-size: 16px; font-weight: 600;">
+                    📊 Representação Visual da Composição Corporal (IMC)
+                </h4>
+                <p style="margin: 0; font-size: 13px; color: #666;">
+                    Baseado na classificação da Organização Mundial da Saúde
+                </p>
+
+                <?php if ($imc): ?>
+                    <div style="margin: 15px 0; padding: 12px; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; display: inline-block;">
+                        <div style="font-size: 24px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">
+                            IMC: <?php echo esc_html($imc); ?> kg/m²
+                        </div>
+                        <div style="font-size: 14px; font-weight: 600; color: <?php echo $c_imc[
+                            "nivel"
+                        ] == "normal"
+                            ? "#059669"
+                            : ($c_imc["nivel"] == "abaixo"
+                                ? "#0891b2"
+                                : "#dc2626"); ?>;">
+                            <?php echo esc_html($c_imc["ref"]); ?>
+                        </div>
                     </div>
-                    <div class="pab-avatar-label <?php echo $active; ?>">
-                        <?php echo esc_html($labels_imc[$lvl]); ?>
+                <?php else: ?>
+                    <div style="margin: 15px 0; padding: 12px; background: #fef3c7; border: 2px solid #fbbf24; border-radius: 8px; display: inline-block;">
+                        <div style="font-size: 14px; color: #92400e; font-weight: 600;">
+                            ⚠️ IMC não calculado - Dados insuficientes
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <?php if ($imc && $nivel): ?>
+                <div style="text-align: center; margin: 10px 0; padding: 8px; background: #e0f2fe; border-radius: 6px;">
+                    <div style="font-size: 13px; color: #0369a1; font-weight: 600;">
+                        👆 Seu avatar atual: <strong><?php echo esc_html(
+                            $labels_imc[$nivel] ?? "N/A",
+                        ); ?></strong>
                     </div>
                 </div>
-            <?php endforeach; ?>
+            <?php endif; ?>
+
+            <?php
+            // Avatares baseados na classificação de IMC
+            $nivel = $c_imc["nivel"];
+            $prefix = $patient_gender === "F" ? "f" : "m";
+            $levels = [
+                "abaixo",
+                "normal",
+                "acima1",
+                "acima2",
+                "acima3",
+                "alto1",
+                "alto2",
+                "alto3",
+            ];
+
+            $labels_imc = [
+                "abaixo" => "Abaixo",
+                "normal" => "Normal",
+                "acima1" => "Acima I",
+                "acima2" => "Acima II",
+                "acima3" => "Acima III",
+                "alto1" => "Alto I",
+                "alto2" => "Alto II",
+                "alto3" => "Alto III",
+            ];
+            ?>
+
+            <div class="pab-avatars-container">
+                <?php foreach ($levels as $lvl): ?>
+                    <?php
+                    $active = $lvl === $nivel ? "active" : "";
+                    $img = PAB_URL . "assets/img/avatars/{$prefix}-{$lvl}.png";
+                    ?>
+                    <div class="pab-avatar-wrapper">
+                        <div class="pab-avatar <?php echo $active; ?>" title="<?php echo esc_attr(
+    $labels_imc[$lvl],
+); ?>">
+                            <img src="<?php echo esc_url(
+                                $img,
+                            ); ?>" alt="<?php echo esc_attr($lvl); ?>">
+                        </div>
+                        <div class="pab-avatar-label <?php echo $active; ?>">
+                            <?php echo esc_html($labels_imc[$lvl]); ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         </div>
     </div>
 
-    <div class="pab-grid-2">
-        
-        <div class="pab-card">
-            <h2>📊 Composição Corporal</h2>
-            <div class="pab-info-row">
-                <span class="pab-info-label">Peso <small style="display: block;"><?php echo esc_html($c_peso['ref']); ?></small></span>
-                <span class="pab-info-value">
-                    <?php echo esc_html($peso); ?> kg
-                    <span class="pab-badge <?php echo esc_attr($c_peso['nivel']); ?>">
-                        <?php echo esc_html(ucfirst($c_peso['nivel'])); ?>
-                    </span>
-                </span>
-            </div>
-            <div class="pab-info-row">
-                <span class="pab-info-label">Gordura Corporal</span>
-                <span class="pab-info-value">
-                    <?php echo esc_html($gordura); ?>% 
-                    <span class="pab-badge <?php echo esc_attr($c_gc['nivel']); ?>">
-                        <?php echo esc_html($c_gc['ref']); ?>
-                    </span>
-                </span>
-            </div>
-            <div class="pab-info-row">
-                <span class="pab-info-label">Músculo Esquelético</span>
-                <span class="pab-info-value">
-                    <?php echo esc_html($musculo); ?>% 
-                    <span class="pab-badge <?php echo esc_attr($c_musculo['nivel']); ?>">
-                        <?php echo esc_html($c_musculo['ref']); ?>
-                    </span>
-                </span>
-            </div>
+    <!-- Metabox: Dados de Bioimpedância -->
+    <div class="pab-metabox">
+        <div class="pab-metabox-header">
+            <span>Dados de Bioimpedância</span>
         </div>
+        <div class="pab-metabox-content">
 
-        <div class="pab-card">
-            <h2>🎯 Indicadores de Saúde</h2>
-            <div class="pab-info-row">
-                <span class="pab-info-label">IMC</span>
-                <span class="pab-info-value">
-                    <?php echo $imc ? esc_html($imc) : '—'; ?> 
-                    <?php if ($imc): ?>
-                    <span class="pab-badge <?php echo esc_attr($c_imc['nivel']); ?>">
-                        <?php echo esc_html($c_imc['ref']); ?>
-                    </span>
-                    <?php endif; ?>
-                </span>
-            </div>
-            <div class="pab-info-row">
-                <span class="pab-info-label">Gordura Visceral</span>
-                <span class="pab-info-value">
-                    Nível <?php echo esc_html($gordura_visc); ?> 
-                    <span class="pab-badge <?php echo esc_attr($c_gv['nivel']); ?>">
-                        <?php echo esc_html($c_gv['ref']); ?>
-                    </span>
-                </span>
-            </div>
-            <div class="pab-info-row">
-                <span class="pab-info-label">Metabolismo Basal</span>
-                <span class="pab-info-value"><?php echo esc_html($metab_basal); ?> kcal/dia</span>
-            </div>
-        </div>
+            <?php if (!$peso && !$musculo && !$idade_corp): ?>
+                <div class="pab-alert pab-alert-info">
+                    <strong>ℹ️ Informação:</strong> Dados de bioimpedância não disponíveis para análise detalhada.
+                </div>
+            <?php
+                // Faixa de peso ideal baseada no IMC normal (18.5-24.9)
+                // Valores de referência para gordura corporal por gênero e idade
+                // Valores de referência para músculo esquelético por gênero e idade
+                // Cálculo aproximado do metabolismo basal por Mifflin-St Jeor
+                // Faixa de peso ideal baseada no IMC normal (18.5-24.9)
+                // Valores de referência para gordura corporal por gênero e idade
+                // Valores de referência para músculo esquelético por gênero e idade
+                // Cálculo aproximado do metabolismo basal por Mifflin-St Jeor
+                else: ?>
+                <div class="pab-comp-cards">
+                    <!-- Card: Peso -->
+                    <?php if ($peso): ?>
+                    <div class="pab-comp-card">
+                        <h4><span class="icon">⚖️</span> Peso Corporal</h4>
+                        <div class="pab-comp-value"><?php echo esc_html(
+                            $peso,
+                        ); ?> kg</div>
 
-        <div class="pab-card">
-            <h2>⏱️ Idade Corporal</h2>
-            <div class="pab-info-row">
-                <span class="pab-info-label">Idade Real</span>
-                <span class="pab-info-value"><?php echo $idade_real ? esc_html($idade_real) . ' anos' : '—'; ?></span>
-            </div>
-            <div class="pab-info-row">
-                <span class="pab-info-label">Idade Corporal</span>
-                <span class="pab-info-value"><?php echo esc_html($idade_corp); ?> anos</span>
-            </div>
-            <?php 
-            $delta = ($idade_real && $idade_corp) ? ((int)$idade_real - (int)$idade_corp) : null;
-            if ($delta !== null):
-            ?>
-            <div class="pab-info-row">
-                <span class="pab-info-label">Diferença</span>
-                <span class="pab-info-value" style="color: <?php echo $delta < 0 ? '#dc3545' : '#28a745'; ?>; font-weight: 700;">
-                    <?php echo $delta > 0 ? '+' : ''; ?><?php echo esc_html($delta); ?> anos
-                    <?php if ($delta < 0): ?>
-                        <small style="display: block; font-size: 11px; font-weight: 400;">(corpo mais velho que a idade real)</small>
-                    <?php else: ?>
-                        <small style="display: block; font-size: 11px; font-weight: 400;">(corpo mais jovem que a idade real)</small>
+                        <?php if ($patient_height): ?>
+                            <?php
+                            $altura_m = $patient_height / 100.0;
+                            $peso_ideal_min = round(
+                                18.5 * ($altura_m * $altura_m),
+                                1,
+                            );
+                            $peso_ideal_max = round(
+                                24.9 * ($altura_m * $altura_m),
+                                1,
+                            );
+                            $peso_medio_ideal =
+                                ($peso_ideal_min + $peso_ideal_max) / 2;
+                            $delta_peso = $peso - $peso_medio_ideal;
+                            ?>
+                            <div style="margin: 8px 0; padding: 8px; background: #f1f5f9; border-radius: 6px;">
+                                <strong style="color: <?php echo $delta_peso > 0
+                                    ? "#dc2626"
+                                    : ($delta_peso < 0
+                                        ? "#0891b2"
+                                        : "#059669"); ?>;">
+                                    <?php echo ($delta_peso > 0 ? "+" : "") .
+                                        number_format(
+                                            $delta_peso,
+                                            1,
+                                        ); ?> kg do peso ideal
+                                </strong>
+                                <br>
+                                <small>Faixa ideal: <?php echo $peso_ideal_min; ?>kg - <?php echo $peso_ideal_max; ?>kg</small>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="pab-comp-ref">
+                            Referência OMS (<?php echo $patient_gender === "F"
+                                ? "Mulher"
+                                : "Homem"; ?>, <?php echo $idade_real; ?> anos):
+                            <?php if ($patient_height) {
+                                $altura_m = $patient_height / 100.0;
+                                $peso_min = round(
+                                    18.5 * ($altura_m * $altura_m),
+                                    1,
+                                );
+                                $peso_max = round(
+                                    24.9 * ($altura_m * $altura_m),
+                                    1,
+                                );
+                                echo $peso_min . " - " . $peso_max . " kg";
+                            } else {
+                                echo "IMC 18.5 - 24.9 kg/m²";
+                            } ?>
+                        </div>
+                    </div>
                     <?php endif; ?>
-                </span>
-            </div>
+
+                    <!-- Card: Gordura Corporal -->
+                    <?php if ($gordura): ?>
+                    <div class="pab-comp-card" style="border-left-color: #f59e0b;">
+                        <h4><span class="icon">🔥</span> Gordura Corporal</h4>
+                        <div class="pab-comp-value"><?php echo esc_html(
+                            $gordura,
+                        ); ?>%</div>
+
+                        <?php if ($peso): ?>
+                            <?php $massa_gordura_kg =
+                                ($gordura / 100) * $peso; ?>
+                            <div style="margin: 8px 0; padding: 8px; background: #fef3c7; border-radius: 6px;">
+                                <strong style="color: #f59e0b;">
+                                    <?php echo number_format(
+                                        $massa_gordura_kg,
+                                        1,
+                                    ); ?> kg de gordura
+                                </strong>
+                                <br>
+                                <small>Em relação ao peso total de <?php echo $peso; ?>kg</small>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="pab-comp-ref">
+                            Referência OMS (<?php echo $patient_gender === "F"
+                                ? "Mulher"
+                                : "Homem"; ?>, <?php echo $idade_real; ?> anos):
+                            <?php if ($patient_gender === "F") {
+                                if ($idade_real < 40) {
+                                    echo "21 - 33%";
+                                } elseif ($idade_real < 60) {
+                                    echo "23 - 35%";
+                                } else {
+                                    echo "24 - 36%";
+                                }
+                            } else {
+                                if ($idade_real < 40) {
+                                    echo "8 - 20%";
+                                } elseif ($idade_real < 60) {
+                                    echo "11 - 22%";
+                                } else {
+                                    echo "13 - 25%";
+                                }
+                            } ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Card: Músculo -->
+                    <?php if ($musculo): ?>
+                    <div class="pab-comp-card" style="border-left-color: #10b981;">
+                        <h4><span class="icon">💪</span> Músculo Esquelético</h4>
+                        <div class="pab-comp-value"><?php echo esc_html(
+                            $musculo,
+                        ); ?>%</div>
+
+                        <?php if ($peso): ?>
+                            <?php $massa_musculo_kg =
+                                ($musculo / 100) * $peso; ?>
+                            <div style="margin: 8px 0; padding: 8px; background: #d1fae5; border-radius: 6px;">
+                                <strong style="color: #10b981;">
+                                    <?php echo number_format(
+                                        $massa_musculo_kg,
+                                        1,
+                                    ); ?> kg de músculo
+                                </strong>
+                                <br>
+                                <small>Massa muscular ativa</small>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="pab-comp-ref">
+                            Referência OMS (<?php echo $patient_gender === "F"
+                                ? "Mulher"
+                                : "Homem"; ?>, <?php echo $idade_real; ?> anos):
+                            <?php if ($patient_gender === "F") {
+                                if ($idade_real < 40) {
+                                    echo "≥ 24%";
+                                } elseif ($idade_real < 60) {
+                                    echo "≥ 23%";
+                                } else {
+                                    echo "≥ 22%";
+                                }
+                            } else {
+                                if ($idade_real < 40) {
+                                    echo "≥ 35%";
+                                } elseif ($idade_real < 60) {
+                                    echo "≥ 34%";
+                                } else {
+                                    echo "≥ 33%";
+                                }
+                            } ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+
+
+                    <!-- Card: Gordura Visceral -->
+                    <?php if ($gordura_visc): ?>
+                    <div class="pab-comp-card" style="border-left-color: #ef4444;">
+                        <h4><span class="icon">🫀</span> Gordura Visceral</h4>
+                        <div class="pab-comp-value">Nível <?php echo esc_html(
+                            $gordura_visc,
+                        ); ?></div>
+                        <div class="pab-comp-ref">
+                            Referência OMS (<?php echo $patient_gender === "F"
+                                ? "Mulher"
+                                : "Homem"; ?>, <?php echo $idade_real; ?> anos):
+                            Nível 1 - 12 (Normal: ≤ 9)
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Card: Metabolismo -->
+                    <?php if ($metab_basal): ?>
+                    <div class="pab-comp-card" style="border-left-color: #8b5cf6;">
+                        <h4><span class="icon">⚡</span> Metabolismo Basal</h4>
+                        <div class="pab-comp-value"><?php echo esc_html(
+                            $metab_basal,
+                        ); ?></div>
+
+                        <div style="margin: 8px 0; padding: 8px; background: #f3e8ff; border-radius: 6px;">
+                            <strong style="color: #8b5cf6;">
+                                ~<?php echo round(
+                                    $metab_basal / 24,
+                                ); ?> kcal/hora
+                            </strong>
+                            <br>
+                            <small>Energia gasta em repouso</small>
+                        </div>
+
+                        <div class="pab-comp-ref">
+                            Referência OMS (<?php echo $patient_gender === "F"
+                                ? "Mulher"
+                                : "Homem"; ?>, <?php echo $idade_real; ?> anos):
+                            <?php if ($peso && $patient_height && $idade_real) {
+                                if ($patient_gender === "F") {
+                                    $tmb_calculado =
+                                        10 * $peso +
+                                        6.25 * $patient_height -
+                                        5 * $idade_real -
+                                        161;
+                                } else {
+                                    $tmb_calculado =
+                                        10 * $peso +
+                                        6.25 * $patient_height -
+                                        5 * $idade_real +
+                                        5;
+                                }
+                                echo round($tmb_calculado) . " kcal/dia";
+                            } else {
+                                echo "Dados insuficientes para cálculo";
+                            } ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Card: Idade Corporal -->
+                    <?php if ($idade_corp): ?>
+                    <div class="pab-comp-card" style="border-left-color: #06b6d4;">
+                        <h4><span class="icon">🕐</span> Idade Corporal</h4>
+                        <div class="pab-comp-value"><?php echo esc_html(
+                            $idade_corp,
+                        ); ?> anos</div>
+
+                        <?php if ($idade_real): ?>
+                            <?php
+                            $delta_idade =
+                                (int) $idade_corp - (int) $idade_real;
+                            $badge_color =
+                                $delta_idade <= 0
+                                    ? "#10b981"
+                                    : ($delta_idade > 5
+                                        ? "#dc2626"
+                                        : "#f59e0b");
+                            ?>
+                            <div style="margin: 8px 0; padding: 8px; background: <?php echo $delta_idade <=
+                            0
+                                ? "#d1fae5"
+                                : "#fef3c7"; ?>; border-radius: 6px;">
+                                <strong style="color: <?php echo $badge_color; ?>;">
+                                    <?php if ($delta_idade == 0): ?>
+                                        Idade ideal (igual à cronológica)
+                                    <?php elseif ($delta_idade > 0): ?>
+                                        +<?php echo $delta_idade; ?> anos mais velha
+                                    <?php else: ?>
+                                        <?php echo $delta_idade; ?> anos mais jovem
+                                    <?php endif; ?>
+                                </strong>
+                                <br>
+                                <small>
+                                    <?php if ($delta_idade <= 0): ?>
+                                        Excelente condição física
+                                    <?php elseif ($delta_idade <= 5): ?>
+                                        Condição razoável, pode melhorar
+                                    <?php else: ?>
+                                        Recomenda-se atividade física regular
+                                    <?php endif; ?>
+                                </small>
+                            </div>
+
+                            <div class="pab-comp-ref">
+                                Idade cronológica: <?php echo esc_html(
+                                    $idade_real,
+                                ); ?> anos
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
             <?php endif; ?>
         </div>
-
     </div>
 
+    <!-- Metabox: Resumo Interpretativo -->
+    <?php if ($peso && $gordura && $musculo && $idade_corp): ?>
+    <div class="pab-metabox">
+        <div class="pab-metabox-header" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); color: #0c4a6e;">
+            <span>📊 Resumo da Composição Corporal</span>
+        </div>
+        <div class="pab-metabox-content">
+            <div style="padding: 20px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 12px; border: 1px solid #0ea5e9;">
+                <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #0f172a;">
+                    <?php
+                    $resumo = "O paciente apresenta ";
+
+                    // Análise do peso
+                    if ($c_peso["nivel"] == "normal") {
+                        $resumo .= "peso adequado ";
+                    } elseif ($c_peso["nivel"] == "abaixo") {
+                        $resumo .= "peso abaixo do ideal ";
+                    } else {
+                        $resumo .= "peso acima do ideal ";
+                    }
+
+                    // Análise da composição
+                    if ($c_musculo["nivel"] == "normal") {
+                        $resumo .= "e massa muscular adequada. ";
+                    } elseif ($c_musculo["nivel"] == "abaixo") {
+                        $resumo .= "e massa muscular abaixo do recomendado. ";
+                    } else {
+                        $resumo .= "e boa massa muscular. ";
+                    }
+
+                    // Análise da gordura corporal
+                    if ($c_gc["nivel"] == "normal") {
+                        $resumo .=
+                            "O percentual de gordura corporal está dentro da faixa saudável. ";
+                    } elseif ($c_gc["nivel"] == "abaixo") {
+                        $resumo .=
+                            "O percentual de gordura corporal está baixo. ";
+                    } else {
+                        $resumo .=
+                            "O percentual de gordura corporal está elevado. ";
+                    }
+
+                    // Análise da idade corporal
+                    $delta_idade = (int) $idade_corp - (int) $idade_real;
+                    if ($delta_idade <= 0) {
+                        $resumo .=
+                            "A idade corporal indica excelente condição física, sendo ";
+                        if (abs($delta_idade) > 0) {
+                            $resumo .=
+                                abs($delta_idade) .
+                                " anos mais jovem que a idade cronológica.";
+                        } else {
+                            $resumo .= "equivalente à idade cronológica.";
+                        }
+                    } elseif ($delta_idade <= 5) {
+                        $resumo .=
+                            "A idade corporal sugere condição física razoável, sendo ";
+                        $resumo .=
+                            $delta_idade .
+                            " anos mais elevada que a cronológica. Recomenda-se manutenção ou melhoria dos hábitos de vida.";
+                    } else {
+                        $resumo .=
+                            "A idade corporal indica necessidade de melhoria da condição física, sendo ";
+                        $resumo .=
+                            $delta_idade .
+                            " anos mais elevada que a cronológica. Recomenda-se atividade física regular e acompanhamento profissional.";
+                    }
+
+                    // Conversões em massa corporal
+                    if ($peso) {
+                        $massa_gordura_kg = ($gordura / 100) * $peso;
+                        $massa_musculo_kg = ($musculo / 100) * $peso;
+                        $resumo .= " Em termos absolutos, o paciente possui ";
+                        $resumo .=
+                            number_format($massa_musculo_kg, 1) .
+                            "kg de massa muscular e ";
+                        $resumo .=
+                            number_format($massa_gordura_kg, 1) .
+                            "kg de gordura corporal.";
+                    }
+
+                    echo esc_html($resumo);
+                    ?>
+                </p>
+            </div>
+
+            <!-- Indicadores visuais -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 20px;">
+                <!-- Indicador Peso -->
+                <div style="text-align: center; padding: 12px; background: <?php echo $c_peso[
+                    "nivel"
+                ] == "normal"
+                    ? "#d1fae5"
+                    : ($c_peso["nivel"] == "abaixo"
+                        ? "#fef3c7"
+                        : "#fee2e2"); ?>; border-radius: 8px;">
+                    <div style="font-size: 18px; margin-bottom: 4px;">
+                        <?php echo $c_peso["nivel"] == "normal"
+                            ? "✅"
+                            : ($c_peso["nivel"] == "abaixo"
+                                ? "⚠️"
+                                : "🔴"); ?>
+                    </div>
+                    <div style="font-size: 12px; font-weight: 600; color: #374151;">PESO</div>
+                    <div style="font-size: 11px; color: #6b7280;"><?php echo ucfirst(
+                        $c_peso["nivel"],
+                    ); ?></div>
+                </div>
+
+                <!-- Indicador Gordura -->
+                <div style="text-align: center; padding: 12px; background: <?php echo $c_gc[
+                    "nivel"
+                ] == "normal"
+                    ? "#d1fae5"
+                    : "#fee2e2"; ?>; border-radius: 8px;">
+                    <div style="font-size: 18px; margin-bottom: 4px;">
+                        <?php echo $c_gc["nivel"] == "normal" ? "✅" : "🔴"; ?>
+                    </div>
+                    <div style="font-size: 12px; font-weight: 600; color: #374151;">GORDURA</div>
+                    <div style="font-size: 11px; color: #6b7280;"><?php echo $gordura; ?>%</div>
+                </div>
+
+                <!-- Indicador Músculo -->
+                <div style="text-align: center; padding: 12px; background: <?php echo $c_musculo[
+                    "nivel"
+                ] == "normal"
+                    ? "#d1fae5"
+                    : "#fee2e2"; ?>; border-radius: 8px;">
+                    <div style="font-size: 18px; margin-bottom: 4px;">
+                        <?php echo $c_musculo["nivel"] == "normal"
+                            ? "✅"
+                            : "🔴"; ?>
+                    </div>
+                    <div style="font-size: 12px; font-weight: 600; color: #374151;">MÚSCULO</div>
+                    <div style="font-size: 11px; color: #6b7280;"><?php echo $musculo; ?>%</div>
+                </div>
+
+                <!-- Indicador Idade -->
+                <div style="text-align: center; padding: 12px; background: <?php echo $delta_idade <=
+                0
+                    ? "#d1fae5"
+                    : ($delta_idade <= 5
+                        ? "#fef3c7"
+                        : "#fee2e2"); ?>; border-radius: 8px;">
+                    <div style="font-size: 18px; margin-bottom: 4px;">
+                        <?php echo $delta_idade <= 0
+                            ? "✅"
+                            : ($delta_idade <= 5
+                                ? "⚠️"
+                                : "🔴"); ?>
+                    </div>
+                    <div style="font-size: 12px; font-weight: 600; color: #374151;">IDADE</div>
+                    <div style="font-size: 11px; color: #6b7280;">
+                        <?php echo $delta_idade <= 0
+                            ? "Ideal"
+                            : ($delta_idade <= 5
+                                ? "Razoável"
+                                : "Atenção"); ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Footer -->
     <div class="pab-footer">
-        <p>Relatório gerado em <?php echo current_time('d/m/Y'); ?> às <?php echo current_time('H:i'); ?></p>
+        <p><strong>Relatório gerado em <?php echo current_time(
+            "d/m/Y",
+        ); ?> às <?php echo current_time("H:i"); ?></strong></p>
         <p><small>Este documento é confidencial e destinado exclusivamente ao paciente identificado.</small></p>
+        <p><small>Desenvolvido com o Plugin Pacientes, Avaliações e Bioimpedância</small></p>
     </div>
 
 </div>
@@ -423,14 +1139,14 @@ get_header();
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.querySelector('.pab-avatars-container');
     const activeAvatar = document.querySelector('.pab-avatar.active');
-    
+
     if (container && activeAvatar) {
         const parentWrapper = activeAvatar.closest('.pab-avatar-wrapper');
         const containerWidth = container.offsetWidth;
         const activeOffset = parentWrapper.offsetLeft;
         const activeWidth = parentWrapper.offsetWidth;
         const scrollTarget = activeOffset - (containerWidth / 2) + (activeWidth / 2);
-        
+
         container.scrollTo({
             left: scrollTarget,
             behavior: 'smooth'

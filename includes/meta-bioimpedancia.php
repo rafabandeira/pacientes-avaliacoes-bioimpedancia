@@ -115,6 +115,33 @@ function pab_bi_paciente_cb($post)
                     🔗 Abrir Relatório Completo
                 </a>
 
+                <?php
+                // Verificar se o permalink contém "item-orfao", título problemático, "NOVO" ou "TEMP"
+                $has_bad_permalink = strpos($post->post_name, 'item-orfao') !== false ||
+                                   strpos($post->post_title, 'ITEM ORFAO') !== false ||
+                                   strpos($post->post_title, '- NOVO') !== false ||
+                                   strpos($post->post_title, '- TEMP') !== false ||
+                                   strpos($post->post_name, '-novo') !== false ||
+                                   strpos($post->post_name, '-temp') !== false;
+
+                if ($has_bad_permalink): ?>
+                <div style="margin-bottom: 10px; padding: 8px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
+                    <p style="margin: 0 0 8px 0; color: #856404; font-size: 12px;">
+                        ⚠️ Este relatório tem um link incorreto<?php
+                        if (strpos($post->post_title, '- NOVO') !== false) {
+                            echo ' (contém "NOVO" no nome)';
+                        } elseif (strpos($post->post_title, '- TEMP') !== false) {
+                            echo ' (contém "TEMP" no nome)';
+                        } ?>. Clique no botão abaixo para corrigi-lo:
+                    </p>
+                    <a href="<?php echo esc_url(add_query_arg(['pab_fix_permalink' => $post->ID, 'nonce' => wp_create_nonce('pab_fix_permalink')], admin_url('post.php?action=edit&post=' . $post->ID))); ?>"
+                       class="button button-secondary"
+                       style="font-size: 11px;">
+                        🔧 Corrigir Link
+                    </a>
+                </div>
+                <?php endif; ?>
+
                 <div class="pab-share-container">
                     <p class="pab-share-label">
                         🌐 Link para Compartilhar
@@ -169,7 +196,6 @@ function pab_bi_dados_cb($post)
                        name="pab_bi_peso"
                        value="<?php echo esc_attr($f["peso"]); ?>"
                        placeholder="Ex: 70.5">
-                <div class="pab-ref">Medida atual do peso corporal</div>
             </label>
 
             <label>
@@ -179,7 +205,6 @@ function pab_bi_dados_cb($post)
                        name="pab_bi_gordura_corporal"
                        value="<?php echo esc_attr($f["gc"]); ?>"
                        placeholder="Ex: 18.5">
-                <div class="pab-ref">Percentual de gordura no corpo</div>
             </label>
 
             <label>
@@ -189,7 +214,6 @@ function pab_bi_dados_cb($post)
                        name="pab_bi_musculo_esq"
                        value="<?php echo esc_attr($f["me"]); ?>"
                        placeholder="Ex: 35.2">
-                <div class="pab-ref">Percentual de massa muscular</div>
             </label>
 
             <label>
@@ -199,7 +223,6 @@ function pab_bi_dados_cb($post)
                        name="pab_bi_gordura_visc"
                        value="<?php echo esc_attr($f["gv"]); ?>"
                        placeholder="Ex: 8.0">
-                <div class="pab-ref">Nível de gordura interna (1-59)</div>
             </label>
 
             <label>
@@ -209,7 +232,6 @@ function pab_bi_dados_cb($post)
                        name="pab_bi_metab_basal"
                        value="<?php echo esc_attr($f["mb"]); ?>"
                        placeholder="Ex: 1580">
-                <div class="pab-ref">Energia gasta em repouso</div>
             </label>
 
             <label>
@@ -219,7 +241,6 @@ function pab_bi_dados_cb($post)
                        name="pab_bi_idade_corporal"
                        value="<?php echo esc_attr($f["idade"]); ?>"
                        placeholder="Ex: 28">
-                <div class="pab-ref">Idade biológica estimada</div>
             </label>
         </div>
 
@@ -539,10 +560,6 @@ function pab_bi_avatares_cb($post)
     echo " (IMC: " . ($imc ? esc_html($imc) : "N/D") . ")";
     echo "</p>";
     echo "</div>";
-
-    echo '<p class="description" style="margin-top: 12px; font-size: 12px; color: #999; font-style: italic;">';
-    echo "Seleção automática baseada na classificação de IMC (Índice de Massa Corporal) da OMS.";
-    echo "</p>";
 }
 
 function pab_calc_idade_real($patient_id)
@@ -624,6 +641,34 @@ function pab_bi_comp_tab_cb($post)
                     <span style="font-size: 28px; font-weight: 700; color: #1e40af;">
                         <?php echo $peso ? esc_html($peso) . " kg" : "—"; ?>
                     </span>
+
+                    <?php if ($peso && $altura_cm): ?>
+                        <?php
+                        $faixa_ideal = pab_calc_faixa_peso_ideal($altura_cm);
+                        if ($faixa_ideal) {
+                            $peso_medio_ideal =
+                                ($faixa_ideal["min"] + $faixa_ideal["max"]) / 2;
+                            $delta_peso = $peso - $peso_medio_ideal;
+                            $delta_text =
+                                ($delta_peso > 0 ? "+" : "") .
+                                number_format($delta_peso, 1) .
+                                " kg";
+                            $delta_color =
+                                $delta_peso > 0
+                                    ? "#dc2626"
+                                    : ($delta_peso < 0
+                                        ? "#0891b2"
+                                        : "#059669");
+                        }
+                        ?>
+                        <?php if (isset($delta_text)): ?>
+                            <div style="margin-top: 4px;">
+                                <span style="font-size: 16px; font-weight: 600; color: <?php echo $delta_color; ?>;">
+                                    (<?php echo $delta_text; ?> do ideal)
+                                </span>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
                 </div>
 
                 <?php if ($peso): ?>
@@ -651,6 +696,16 @@ function pab_bi_comp_tab_cb($post)
                     <span style="font-size: 28px; font-weight: 700; color: #047857;">
                         <?php echo $mus ? esc_html($mus) . "%" : "—"; ?>
                     </span>
+                    <?php if ($mus && $peso): ?>
+                        <div style="margin-top: 4px;">
+                            <span style="font-size: 16px; font-weight: 600; color: #047857;">
+                                (<?php echo number_format(
+                                    ($mus / 100) * $peso,
+                                    1,
+                                ); ?> kg)
+                            </span>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <?php if ($mus): ?>
@@ -846,6 +901,15 @@ function pab_bi_diag_obes_cb($post)
                         <h5 style="margin: 0; font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">🔥 Gordura</h5>
                         <p style="margin: 4px 0 0 0; font-size: 20px; font-weight: 700; color: #d97706;">
                             <?php echo $gc ? esc_html($gc) . "%" : "—"; ?>
+                            <?php if ($gc && $peso): ?>
+                                <br>
+                                <span style="font-size: 14px; font-weight: 600; color: #d97706;">
+                                    (<?php echo number_format(
+                                        ($gc / 100) * $peso,
+                                        1,
+                                    ); ?> kg)
+                                </span>
+                            <?php endif; ?>
                         </p>
                     </div>
                     <div style="font-size: 32px; opacity: 0.3;">🎯</div>
@@ -1110,66 +1174,271 @@ function pab_bi_historico_cb($post)
                 <span style="margin-right: 8px;">📋</span> Resumo Estatístico
             </h4>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                <?php
-                // Calcular estatísticas
-                $peso_atual = end($pesos);
-                $peso_inicial = reset($pesos);
-                $variacao_peso = $peso_atual - $peso_inicial;
+            <?php
+            // Identificar a posição da bioimpedância atual no histórico
+            $current_bio_id = (int) $post->ID;
+            $current_bio_position = -1;
+            $total_avaliacoes = count($bio_series->posts);
 
-                $gordura_atual = end($gorduras);
-                $gordura_inicial = reset($gorduras);
-                $variacao_gordura = $gordura_atual - $gordura_inicial;
+            // Encontrar a posição da bioimpedância atual
+            for ($i = 0; $i < $total_avaliacoes; $i++) {
+                if ((int) $bio_series->posts[$i] === $current_bio_id) {
+                    $current_bio_position = $i;
+                    break;
+                }
+            }
 
-                $musculo_atual = end($musculos);
-                $musculo_inicial = reset($musculos);
-                $variacao_musculo = $musculo_atual - $musculo_inicial;
+            // Se não encontrou a bioimpedância atual (primeira vez editando), não mostrar resumo
+            if ($current_bio_position === -1) {
+                echo '<div class="pab-alert pab-alert-info">
+                    <strong>ℹ️ Informação:</strong> O resumo estatístico será exibido após salvar a bioimpedância.
+                </div>';
+                return;
+            }
 
-                $data_inicial = reset($datas);
-                $data_atual = end($datas);
-                $dias_acompanhamento =
-                    (strtotime($data_atual) - strtotime($data_inicial)) /
+            // Se é a primeira bioimpedância, não há comparação possível
+            if ($current_bio_position === 0) {
+                echo '<div class="pab-alert pab-alert-info">
+                    <strong>ℹ️ Informação:</strong> Esta é a primeira bioimpedância registrada. O resumo estatístico estará disponível a partir da segunda avaliação.
+                </div>';
+                return;
+            }
+
+            // Pegar dados até a posição atual (inclusive)
+            $peso_atual = $pesos[$current_bio_position];
+            $peso_inicial = $pesos[0];
+            $variacao_peso_inicial = $peso_atual - $peso_inicial;
+
+            $gordura_atual = $gorduras[$current_bio_position];
+            $gordura_inicial = $gorduras[0];
+            $variacao_gordura_inicial = $gordura_atual - $gordura_inicial;
+
+            // Calcular variação absoluta de gordura em kg (desde o início)
+            $massa_gordura_inicial = ($gordura_inicial / 100) * $peso_inicial;
+            $massa_gordura_atual = ($gordura_atual / 100) * $peso_atual;
+            $variacao_gordura_kg_inicial =
+                $massa_gordura_atual - $massa_gordura_inicial;
+
+            $musculo_atual = $musculos[$current_bio_position];
+            $musculo_inicial = $musculos[0];
+            $variacao_musculo_inicial = $musculo_atual - $musculo_inicial;
+
+            // Calcular variação absoluta de músculo em kg (desde o início)
+            $massa_musculo_inicial = ($musculo_inicial / 100) * $peso_inicial;
+            $massa_musculo_atual = ($musculo_atual / 100) * $peso_atual;
+            $variacao_musculo_kg_inicial =
+                $massa_musculo_atual - $massa_musculo_inicial;
+
+            // Calcular estatísticas para comparação com a bioimpedância anterior
+            $variacao_peso_ultima = 0;
+            $variacao_gordura_ultima = 0;
+            $variacao_gordura_kg_ultima = 0;
+            $variacao_musculo_ultima = 0;
+            $variacao_musculo_kg_ultima = 0;
+            $dias_ultima_avaliacao = 0;
+            $has_previous = $current_bio_position > 0;
+
+            if ($has_previous) {
+                // Pegar a bioimpedância anterior à atual
+                $peso_anterior = $pesos[$current_bio_position - 1];
+                $gordura_anterior = $gorduras[$current_bio_position - 1];
+                $musculo_anterior = $musculos[$current_bio_position - 1];
+                $data_anterior = $datas[$current_bio_position - 1];
+
+                $variacao_peso_ultima = $peso_atual - $peso_anterior;
+                $variacao_gordura_ultima = $gordura_atual - $gordura_anterior;
+                $variacao_musculo_ultima = $musculo_atual - $musculo_anterior;
+
+                // Calcular variação absoluta em kg (desde a anterior)
+                $massa_gordura_anterior =
+                    ($gordura_anterior / 100) * $peso_anterior;
+                $massa_musculo_anterior =
+                    ($musculo_anterior / 100) * $peso_anterior;
+                $variacao_gordura_kg_ultima =
+                    $massa_gordura_atual - $massa_gordura_anterior;
+                $variacao_musculo_kg_ultima =
+                    $massa_musculo_atual - $massa_musculo_anterior;
+
+                $data_atual_timestamp = strtotime(
+                    $datas[$current_bio_position],
+                );
+                $data_anterior_timestamp = strtotime($data_anterior);
+                $dias_ultima_avaliacao =
+                    ($data_atual_timestamp - $data_anterior_timestamp) /
                     (60 * 60 * 24);
-                ?>
+            }
 
-                <div style="text-align: center;">
-                    <p style="margin: 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase;">Período</p>
-                    <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: #0c4a6e;">
-                        <?php echo round($dias_acompanhamento); ?> dias
-                    </p>
+            $data_inicial = $datas[0];
+            $data_atual = $datas[$current_bio_position];
+            $dias_acompanhamento_total =
+                (strtotime($data_atual) - strtotime($data_inicial)) /
+                (60 * 60 * 24);
+            ?>
+
+            <?php if ($has_previous): ?>
+            <!-- Comparativo desde a bioimpedância ANTERIOR -->
+            <div style="margin-bottom: 20px;">
+                <h5 style="margin: 0 0 12px 0; color: #0c4a6e; font-size: 13px; font-weight: 600; text-align: center; padding: 8px; background: rgba(16, 185, 129, 0.1); border-radius: 6px;">
+                    🔄 Evolução desde a ANTERIOR (<?php echo date(
+                        "d/m/Y",
+                        strtotime($datas[$current_bio_position - 1]),
+                    ); ?>) até ATUAL (<?php echo date(
+    "d/m/Y",
+    strtotime($data_atual),
+); ?>)
+                </h5>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+                    <div style="text-align: center;">
+                        <p style="margin: 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase;">Período</p>
+                        <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: #0c4a6e;">
+                            <?php echo round($dias_ultima_avaliacao); ?> dias
+                        </p>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <p style="margin: 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase;">Peso</p>
+                        <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: <?php echo $variacao_peso_ultima >=
+                        0
+                            ? "#dc2626"
+                            : "#10b981"; ?>;">
+                            <?php echo ($variacao_peso_ultima >= 0 ? "+" : "") .
+                                number_format($variacao_peso_ultima, 1); ?> kg
+                        </p>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <p style="margin: 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase;">Gordura</p>
+                        <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: <?php echo $variacao_gordura_ultima >=
+                        0
+                            ? "#dc2626"
+                            : "#10b981"; ?>;">
+                            <?php echo ($variacao_gordura_ultima >= 0
+                                ? "+"
+                                : "") .
+                                number_format($variacao_gordura_ultima, 1); ?>%
+                        </p>
+                        <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: 600; color: <?php echo $variacao_gordura_kg_ultima >=
+                        0
+                            ? "#dc2626"
+                            : "#10b981"; ?>;">
+                            (<?php echo ($variacao_gordura_kg_ultima >= 0
+                                ? "+"
+                                : "") .
+                                number_format(
+                                    $variacao_gordura_kg_ultima,
+                                    1,
+                                ); ?> kg)
+                        </p>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <p style="margin: 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase;">Músculo</p>
+                        <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: <?php echo $variacao_musculo_ultima >=
+                        0
+                            ? "#10b981"
+                            : "#dc2626"; ?>;">
+                            <?php echo ($variacao_musculo_ultima >= 0
+                                ? "+"
+                                : "") .
+                                number_format($variacao_musculo_ultima, 1); ?>%
+                        </p>
+                        <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: 600; color: <?php echo $variacao_musculo_kg_ultima >=
+                        0
+                            ? "#10b981"
+                            : "#dc2626"; ?>;">
+                            (<?php echo ($variacao_musculo_kg_ultima >= 0
+                                ? "+"
+                                : "") .
+                                number_format(
+                                    $variacao_musculo_kg_ultima,
+                                    1,
+                                ); ?> kg)
+                        </p>
+                    </div>
                 </div>
+            </div>
+            <?php endif; ?>
 
-                <div style="text-align: center;">
-                    <p style="margin: 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase;">Δ Peso</p>
-                    <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: <?php echo $variacao_peso >=
-                    0
-                        ? "#dc2626"
-                        : "#10b981"; ?>;">
-                        <?php echo ($variacao_peso >= 0 ? "+" : "") .
-                            number_format($variacao_peso, 1); ?> kg
-                    </p>
-                </div>
+            <!-- Comparativo desde o INÍCIO -->
+            <div>
+                <h5 style="margin: 0 0 12px 0; color: #0c4a6e; font-size: 13px; font-weight: 600; text-align: center; padding: 8px; background: rgba(14, 165, 233, 0.1); border-radius: 6px;">
+                    📈 Evolução desde o INÍCIO (<?php echo date(
+                        "d/m/Y",
+                        strtotime($data_inicial),
+                    ); ?>) até ATUAL (<?php echo date("d/m/Y", strtotime($data_atual)); ?>)
+                </h5>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+                    <div style="text-align: center;">
+                        <p style="margin: 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase;">Período</p>
+                        <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: #0c4a6e;">
+                            <?php echo round(
+                                $dias_acompanhamento_total,
+                            ); ?> dias
+                        </p>
+                    </div>
 
-                <div style="text-align: center;">
-                    <p style="margin: 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase;">Δ Gordura</p>
-                    <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: <?php echo $variacao_gordura >=
-                    0
-                        ? "#dc2626"
-                        : "#10b981"; ?>;">
-                        <?php echo ($variacao_gordura >= 0 ? "+" : "") .
-                            number_format($variacao_gordura, 1); ?>%
-                    </p>
-                </div>
+                    <div style="text-align: center;">
+                        <p style="margin: 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase;">Peso</p>
+                        <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: <?php echo $variacao_peso_inicial >=
+                        0
+                            ? "#dc2626"
+                            : "#10b981"; ?>;">
+                            <?php echo ($variacao_peso_inicial >= 0
+                                ? "+"
+                                : "") .
+                                number_format($variacao_peso_inicial, 1); ?> kg
+                        </p>
+                    </div>
 
-                <div style="text-align: center;">
-                    <p style="margin: 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase;">Δ Músculo</p>
-                    <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: <?php echo $variacao_musculo >=
-                    0
-                        ? "#10b981"
-                        : "#dc2626"; ?>;">
-                        <?php echo ($variacao_musculo >= 0 ? "+" : "") .
-                            number_format($variacao_musculo, 1); ?>%
-                    </p>
+                    <div style="text-align: center;">
+                        <p style="margin: 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase;">Gordura</p>
+                        <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: <?php echo $variacao_gordura_inicial >=
+                        0
+                            ? "#dc2626"
+                            : "#10b981"; ?>;">
+                            <?php echo ($variacao_gordura_inicial >= 0
+                                ? "+"
+                                : "") .
+                                number_format($variacao_gordura_inicial, 1); ?>%
+                        </p>
+                        <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: 600; color: <?php echo $variacao_gordura_kg_inicial >=
+                        0
+                            ? "#dc2626"
+                            : "#10b981"; ?>;">
+                            (<?php echo ($variacao_gordura_kg_inicial >= 0
+                                ? "+"
+                                : "") .
+                                number_format(
+                                    $variacao_gordura_kg_inicial,
+                                    1,
+                                ); ?> kg)
+                        </p>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <p style="margin: 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase;">Músculo</p>
+                        <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: 700; color: <?php echo $variacao_musculo_inicial >=
+                        0
+                            ? "#10b981"
+                            : "#dc2626"; ?>;">
+                            <?php echo ($variacao_musculo_inicial >= 0
+                                ? "+"
+                                : "") .
+                                number_format($variacao_musculo_inicial, 1); ?>%
+                        </p>
+                        <p style="margin: 2px 0 0 0; font-size: 14px; font-weight: 600; color: <?php echo $variacao_musculo_kg_inicial >=
+                        0
+                            ? "#10b981"
+                            : "#dc2626"; ?>;">
+                            (<?php echo ($variacao_musculo_kg_inicial >= 0
+                                ? "+"
+                                : "") .
+                                number_format(
+                                    $variacao_musculo_kg_inicial,
+                                    1,
+                                ); ?> kg)
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1201,6 +1470,49 @@ add_action(
     function ($post_id) {
         // Debug log
         error_log("PAB DEBUG: Iniciando salvamento bioimpedancia ID: $post_id");
+        error_log(
+            "PAB DEBUG: Ação atual: " .
+                (isset($_REQUEST["action"])
+                    ? $_REQUEST["action"]
+                    : "não definida"),
+        );
+        error_log(
+            "PAB DEBUG: POST data keys: " . implode(", ", array_keys($_POST)),
+        );
+
+        // NÃO processar se for operação de lixo/exclusão
+        $current_post = get_post($post_id);
+        if (
+            $current_post &&
+            in_array($current_post->post_status, ["trash", "inherit"])
+        ) {
+            error_log(
+                "PAB DEBUG: Post em lixo ou herdado (status: {$current_post->post_status}), não processando",
+            );
+            return;
+        }
+
+        // NÃO processar se for uma ação de lixo via REQUEST
+        if (
+            isset($_REQUEST["action"]) &&
+            in_array($_REQUEST["action"], ["trash", "delete", "untrash"])
+        ) {
+            error_log(
+                "PAB DEBUG: Ação de lixo/exclusão detectada via REQUEST ({$_REQUEST["action"]}), não processando",
+            );
+            return;
+        }
+
+        // NÃO processar se for uma ação de lixo via POST
+        if (
+            isset($_POST["action"]) &&
+            in_array($_POST["action"], ["trash", "delete", "untrash"])
+        ) {
+            error_log(
+                "PAB DEBUG: Ação de lixo/exclusão detectada via POST ({$_POST["action"]}), não processando",
+            );
+            return;
+        }
 
         // Prevenir loops infinitos
         static $processing = [];
@@ -1213,11 +1525,28 @@ add_action(
         $processing[$post_id] = true;
 
         // 1. Checagens de Segurança
-        if (
-            !isset($_POST["pab_bi_nonce"]) ||
-            !wp_verify_nonce($_POST["pab_bi_nonce"], "pab_bi_save")
-        ) {
-            error_log("PAB DEBUG: Nonce inválido para post $post_id");
+        $has_valid_nonce = isset($_POST["pab_bi_nonce"]) &&
+                          wp_verify_nonce($_POST["pab_bi_nonce"], "pab_bi_save");
+
+        if (!$has_valid_nonce) {
+            error_log("PAB DEBUG: Nonce inválido para post $post_id - mas tentando salvar pab_paciente_id se disponível");
+
+            // Se não há nonce válido, só salvar o pab_paciente_id se estiver no POST
+            if (isset($_POST["pab_paciente_id"])) {
+                $patient_id = (int) $_POST["pab_paciente_id"];
+                error_log("PAB DEBUG: Salvando apenas pab_paciente_id=$patient_id para post $post_id (sem nonce)");
+                pab_link_to_patient($post_id, $patient_id);
+            }
+
+            unset($processing[$post_id]);
+            return;
+        }
+
+        // 1.1. Verificar capabilities
+        if (!current_user_can("edit_post", $post_id)) {
+            error_log(
+                "PAB DEBUG: Usuário sem permissão para editar post $post_id",
+            );
             unset($processing[$post_id]);
             return;
         }
@@ -1287,13 +1616,17 @@ add_action(
                 $patient_name =
                     get_the_title($patient_id) ?: "Paciente Sem Nome";
                 $new_title = trim("$patient_name - Bioimpedância - $post_id");
+                $new_slug = sanitize_title($new_title);
 
                 global $wpdb;
                 $wpdb->update(
                     $wpdb->posts,
-                    ["post_title" => $new_title],
+                    [
+                        "post_title" => $new_title,
+                        "post_name" => $new_slug
+                    ],
                     ["ID" => $post_id],
-                    ["%s"],
+                    ["%s", "%s"],
                     ["%d"],
                 );
                 clean_post_cache($post_id);
@@ -1312,3 +1645,290 @@ add_action(
     10,
     1,
 );
+
+/**
+ * Hook específico para controlar o status dos posts de bioimpedância
+ * Executado ANTES do save_post para garantir o status correto
+ */
+add_action(
+    "wp_insert_post_data",
+    function ($data, $postarr) {
+        // Só processar bioimpedâncias
+        if ($data["post_type"] !== "pab_bioimpedancia") {
+            return $data;
+        }
+
+        error_log(
+            "PAB DEBUG: wp_insert_post_data - Status original: {$data["post_status"]}",
+        );
+        error_log(
+            "PAB DEBUG: wp_insert_post_data - Ação REQUEST: " .
+                (isset($_REQUEST["action"])
+                    ? $_REQUEST["action"]
+                    : "não definida"),
+        );
+
+        // NÃO interferir com operações de lixo, exclusão ou outros status especiais
+        if (
+            in_array($data["post_status"], [
+                "trash",
+                "inherit",
+                "private",
+                "future",
+                "pending",
+            ])
+        ) {
+            error_log(
+                "PAB DEBUG: Status especial detectado ({$data["post_status"]}), não interferindo",
+            );
+            return $data;
+        }
+
+        // NÃO interferir se for uma operação de lixo via REQUEST
+        if (
+            isset($_REQUEST["action"]) &&
+            in_array($_REQUEST["action"], ["trash", "delete", "untrash"])
+        ) {
+            error_log(
+                "PAB DEBUG: Operação de lixo/exclusão detectada via REQUEST action ({$_REQUEST["action"]}), não interferindo",
+            );
+            return $data;
+        }
+
+        // NÃO interferir se for uma operação de lixo via POST
+        if (
+            isset($_POST["action"]) &&
+            in_array($_POST["action"], ["trash", "delete", "untrash"])
+        ) {
+            error_log(
+                "PAB DEBUG: Operação de lixo/exclusão detectada via POST action ({$_POST["action"]}), não interferindo",
+            );
+            return $data;
+        }
+
+        // NÃO interferir se for uma operação de bulk action
+        if (
+            isset($_POST["action2"]) &&
+            in_array($_POST["action2"], ["trash", "delete", "untrash"])
+        ) {
+            error_log(
+                "PAB DEBUG: Operação de bulk action detectada ({$_POST["action2"]}), não interferindo",
+            );
+            return $data;
+        }
+
+        // Debug dos dados recebidos (apenas para operações normais)
+        error_log(
+            "PAB DEBUG: wp_insert_post_data - Status original: " .
+                $data["post_status"],
+        );
+        error_log(
+            "PAB DEBUG: wp_insert_post_data - POST status: " .
+                (isset($_POST["post_status"])
+                    ? $_POST["post_status"]
+                    : "não definido"),
+        );
+        error_log(
+            "PAB DEBUG: wp_insert_post_data - Botão publish: " .
+                (isset($_POST["publish"]) ? "SIM" : "NÃO"),
+        );
+        error_log(
+            "PAB DEBUG: wp_insert_post_data - Botão save: " .
+                (isset($_POST["save"]) ? "SIM" : "NÃO"),
+        );
+
+        // Detectar intenção de publicar através de múltiplas verificações
+        $wants_to_publish = false;
+
+        // 1. Status explícito
+        if (
+            isset($_POST["post_status"]) &&
+            $_POST["post_status"] === "publish"
+        ) {
+            $wants_to_publish = true;
+            error_log("PAB DEBUG: Publicação detectada via post_status");
+        }
+
+        // 2. Botão de publicar
+        if (isset($_POST["publish"])) {
+            $wants_to_publish = true;
+            error_log("PAB DEBUG: Publicação detectada via botão publish");
+        }
+
+        // 3. Post sendo salvo de auto-draft (novo post)
+        if ($data["post_status"] === "auto-draft" && !isset($_POST["save"])) {
+            $wants_to_publish = true;
+            error_log(
+                "PAB DEBUG: Publicação detectada - convertendo auto-draft",
+            );
+        }
+
+        // 4. Se já existe e não é rascunho explícito
+        if (isset($postarr["ID"]) && $postarr["ID"] > 0) {
+            $existing_post = get_post($postarr["ID"]);
+            if (
+                $existing_post &&
+                $existing_post->post_status === "publish" &&
+                !isset($_POST["save"])
+            ) {
+                $wants_to_publish = true;
+                error_log(
+                    "PAB DEBUG: Mantendo status publish de post existente",
+                );
+            }
+        }
+
+        // Aplicar o status correto apenas se for uma operação normal
+        if ($wants_to_publish && $data["post_status"] !== "trash") {
+            $data["post_status"] = "publish";
+            error_log("PAB DEBUG: Status definido como publish");
+        } else {
+            error_log(
+                "PAB DEBUG: Status mantido como: " . $data["post_status"],
+            );
+        }
+
+        return $data;
+    },
+    99,
+    2,
+);
+
+/**
+ * Hook para monitorar operações de exclusão/lixo
+ */
+add_action(
+    "wp_trash_post",
+    function ($post_id) {
+        $post = get_post($post_id);
+        if ($post && $post->post_type === "pab_bioimpedancia") {
+            error_log(
+                "PAB DEBUG: wp_trash_post chamado para bioimpedância ID: $post_id",
+            );
+            error_log("PAB DEBUG: Status antes do lixo: " . $post->post_status);
+        }
+    },
+    10,
+    1,
+);
+
+add_action(
+    "trashed_post",
+    function ($post_id) {
+        $post = get_post($post_id);
+        if ($post && $post->post_type === "pab_bioimpedancia") {
+            error_log(
+                "PAB DEBUG: trashed_post executado para bioimpedância ID: $post_id",
+            );
+            error_log("PAB DEBUG: Status após lixo: " . $post->post_status);
+        }
+    },
+    10,
+    1,
+);
+
+add_action(
+    "wp_untrash_post",
+    function ($post_id) {
+        $post = get_post($post_id);
+        if ($post && $post->post_type === "pab_bioimpedancia") {
+            error_log(
+                "PAB DEBUG: wp_untrash_post chamado para bioimpedância ID: $post_id",
+            );
+            error_log(
+                "PAB DEBUG: Status antes da restauração: " . $post->post_status,
+            );
+        }
+    },
+    10,
+    1,
+);
+
+add_action(
+    "untrashed_post",
+    function ($post_id) {
+        $post = get_post($post_id);
+        if ($post && $post->post_type === "pab_bioimpedancia") {
+            error_log(
+                "PAB DEBUG: untrashed_post executado para bioimpedância ID: $post_id",
+            );
+            error_log(
+                "PAB DEBUG: Status após restauração: " . $post->post_status,
+            );
+        }
+    },
+    10,
+    1,
+);
+
+add_action(
+    "before_delete_post",
+    function ($post_id) {
+        $post = get_post($post_id);
+        if ($post && $post->post_type === "pab_bioimpedancia") {
+            error_log(
+                "PAB DEBUG: before_delete_post chamado para bioimpedância ID: $post_id",
+            );
+            error_log(
+                "PAB DEBUG: Status antes da exclusão: " . $post->post_status,
+            );
+        }
+    },
+    10,
+    1,
+);
+
+add_action(
+    "deleted_post",
+    function ($post_id) {
+        error_log("PAB DEBUG: deleted_post executado para post ID: $post_id");
+    },
+    10,
+    1,
+);
+
+// Handler para correção de permalink individual
+add_action("admin_init", function () {
+    if (isset($_GET["pab_fix_permalink"]) && isset($_GET["nonce"]) && current_user_can("edit_posts")) {
+        if (!wp_verify_nonce($_GET["nonce"], "pab_fix_permalink")) {
+            wp_die("Nonce inválido");
+        }
+
+        $post_id = (int) $_GET["pab_fix_permalink"];
+        $result = pab_regenerate_bioimpedancia_permalink($post_id);
+
+        if ($result) {
+            $redirect_url = add_query_arg([
+                "post" => $post_id,
+                "action" => "edit",
+                "pab_permalink_fixed" => "1"
+            ], admin_url("post.php"));
+        } else {
+            $redirect_url = add_query_arg([
+                "post" => $post_id,
+                "action" => "edit",
+                "pab_permalink_error" => "1"
+            ], admin_url("post.php"));
+        }
+
+        wp_redirect($redirect_url);
+        exit;
+    }
+
+    // Mostrar mensagens de feedback
+    if (isset($_GET["pab_permalink_fixed"])) {
+        add_action("admin_notices", function () {
+            echo '<div class="notice notice-success is-dismissible">';
+            echo '<p>✅ Permalink da bioimpedância foi corrigido com sucesso!</p>';
+            echo '</div>';
+        });
+    }
+
+    if (isset($_GET["pab_permalink_error"])) {
+        add_action("admin_notices", function () {
+            echo '<div class="notice notice-error is-dismissible">';
+            echo '<p>❌ Erro ao corrigir permalink da bioimpedância.</p>';
+            echo '</div>';
+        });
+    }
+});
