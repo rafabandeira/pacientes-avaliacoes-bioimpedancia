@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Pacientes, Avaliações e Bioimpedância
  * Description: CPT principal Paciente + Avaliação + Bioimpedância, metaboxes, associações automáticas, avatares, OMS, gráficos.
- * Version: 1.0.8
+ * Version: 1.0.9
  * Author: BandeiraGroup
  * Text Domain: pab
  */
@@ -19,12 +19,18 @@ require_once PAB_PATH . "includes/assets.php";
 require_once PAB_PATH . "includes/cpt-paciente.php";
 require_once PAB_PATH . "includes/cpt-avaliacao.php";
 require_once PAB_PATH . "includes/cpt-bioimpedancia.php";
-require_once PAB_PATH . "includes/meta-paciente.php";
-require_once PAB_PATH . "includes/meta-avaliacao.php";
-require_once PAB_PATH . "includes/meta-bioimpedancia.php";
+
+// Estrutura Modular - Funções Compartilhadas
+require_once PAB_PATH . "includes/shared/calculations.php";
+
+// Estrutura Modular - Metaboxes por Post Type
+require_once PAB_PATH . "includes/paciente/meta-boxes.php";
+require_once PAB_PATH . "includes/avaliacao/meta-boxes.php";
+require_once PAB_PATH . "includes/bioimpedancia/meta-boxes.php";
+
 require_once PAB_PATH . "includes/admin-listings.php";
 require_once PAB_PATH . "includes/charts.php";
-require_once PAB_PATH . "includes/template-loader.php"; // ADICIONADO
+require_once PAB_PATH . "includes/template-loader.php";
 
 add_action("init", function () {
     // Carregar traduções se necessário
