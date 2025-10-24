@@ -2,8 +2,6 @@
 /**
  * Funções de Cálculo Compartilhadas
  *
- * Contém funções de cálculo utilizadas por múltiplos post types
- *
  * @package PAB
  * @subpackage Shared
  */
@@ -57,8 +55,8 @@ function pab_calc_idade_real($patient_id)
 /**
  * Classificação OMS/Padrão por Métrica
  *
- * Implementa faixas por Gênero e Idade (usando 60 como corte para idoso/jovem).
- * Adicionado cálculo de Peso Ideal por IMC.
+ * CORRIGIDO: Adicionadas validações robustas na entrada
+ * para Gênero, Idade e Valor.
  *
  * @param string $metric Métrica a ser classificada (peso, gc, musculo, imc, gv)
  * @param float $value Valor da métrica
@@ -70,24 +68,36 @@ function pab_calc_idade_real($patient_id)
 function pab_oms_classificacao($metric, $value, $genero, $idade, $context = [])
 {
     // Debug log
+    /*
     error_log(
         "PAB DEBUG: pab_oms_classificacao chamada com metric=$metric, value=$value, genero=$genero, idade=$idade",
     );
+    */
 
-    // Retorna se o valor for nulo ou vazio
+    // --- 1. Validação de Entrada (Robustecida) ---
+
+    // Retorna se o valor for nulo, vazio ou não numérico
     if ($value === "" || $value === null || !is_numeric($value)) {
-        error_log("PAB DEBUG: Valor inválido para $metric: $value");
         return ["nivel" => "—", "ref" => "Falta dado"];
     }
 
-    // Validação de gênero
+    // Validação de gênero (essencial para a maioria dos cálculos)
     if (!in_array($genero, ["M", "F"])) {
-        error_log("PAB DEBUG: Gênero inválido '$genero', usando M como padrão");
-        $genero = "M"; // Default
+        // Não assumir um gênero padrão, pois isso leva a cálculos errados.
+        return ["nivel" => "—", "ref" => "Falta gênero"];
+    }
+
+    // Validação de idade (necessária para GC e IMC)
+    if ($metric === "gc" || $metric === "imc") {
+        if ($idade === null || !is_numeric($idade) || $idade <= 0) {
+            return ["nivel" => "—", "ref" => "Falta idade"];
+        }
     }
 
     // Configuração de corte de idade (Adulto vs. Idoso)
     $is_elderly = $idade !== null && $idade >= 60;
+
+    // --- 2. Cálculos ---
 
     // ----------------------------------------------------------------------
     // 0. PESO (baseado na faixa de IMC ideal)
@@ -120,7 +130,6 @@ function pab_oms_classificacao($metric, $value, $genero, $idade, $context = [])
 
     // ----------------------------------------------------------------------
     // 1. GORDURA CORPORAL (GC - Faixas baseadas em evidências científicas)
-    // Fonte: Estudos epidemiológicos e consensos clínicos internacionais
     // ----------------------------------------------------------------------
     if ($metric === "gc") {
         $ranges = [
@@ -158,7 +167,7 @@ function pab_oms_classificacao($metric, $value, $genero, $idade, $context = [])
 
         $age_group = $is_elderly ? "idoso" : "jovem";
 
-        // Verificação de segurança dos ranges
+        // Verificação de segurança dos ranges (embora gênero já tenha sido validado)
         if (!isset($ranges[$genero][$age_group])) {
             return ["nivel" => "—", "ref" => "Erro de configuração"];
         }
@@ -182,18 +191,12 @@ function pab_oms_classificacao($metric, $value, $genero, $idade, $context = [])
 
     // ----------------------------------------------------------------------
     // 2. MÚSCULO ESQUELÉTICO (ME - Faixas por Gênero)
-    // Fonte: Padrões comuns de Bioimpedância
     // ----------------------------------------------------------------------
     if ($metric === "musculo") {
         $ranges = [
             "M" => ["abaixo" => 33.3, "normal" => 39.4, "acima1" => 100],
             "F" => ["abaixo" => 24.4, "normal" => 32.8, "acima1" => 100],
         ];
-
-        // Verificação de segurança dos ranges
-        if (!isset($ranges[$genero])) {
-            return ["nivel" => "—", "ref" => "Erro de configuração"];
-        }
 
         $current_ranges = $ranges[$genero];
 
@@ -208,7 +211,6 @@ function pab_oms_classificacao($metric, $value, $genero, $idade, $context = [])
 
     // ----------------------------------------------------------------------
     // 3. IMC (Índice de Massa Corporal - Padrão OMS)
-    // Fonte: OMS (World Health Organization)
     // ----------------------------------------------------------------------
     if ($metric === "imc") {
         if ($is_elderly) {
@@ -246,7 +248,6 @@ function pab_oms_classificacao($metric, $value, $genero, $idade, $context = [])
 
     // ----------------------------------------------------------------------
     // 4. GORDURA VISCERAL (GV - Nível 1-59)
-    // Fonte: Padrões comuns de Bioimpedância
     // ----------------------------------------------------------------------
     if ($metric === "gv") {
         if ($value <= 9) {

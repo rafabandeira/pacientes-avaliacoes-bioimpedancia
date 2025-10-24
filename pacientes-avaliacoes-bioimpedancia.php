@@ -1,10 +1,17 @@
 <?php
 /**
- * Plugin Name: Pacientes, Avaliações e Bioimpedâncias
- * Description: CPT principal Paciente + Avaliação + Bioimpedância, metaboxes, associações automáticas, avatares, OMS, gráficos.
- * Version: 1.0.11
- * Author: BandeiraGroup
- * Text Domain: pab
+ * Plugin Name:       Pacientes, Avaliações e Bioimpedâncias
+ * Plugin URI:        https://bandeiragroup.com/
+ * Description:       Gerencia Pacientes, Avaliações, Bioimpedâncias e Medidas para a Clínica Thayse Brito. Inclui metaboxes, relatórios e gráficos de progresso.
+ * Version:           1.1.0
+ * Author:            BandeiraGroup
+ * Author URI:        https://bandeiragroup.com/
+ * License:           GPLv2 or later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       pab
+ * Domain Path:       /languages
+ * Requires at least: 5.8
+ * Requires PHP:      7.4
  */
 
 if (!defined("ABSPATH")) {
@@ -35,7 +42,7 @@ require_once PAB_PATH . "includes/charts.php";
 require_once PAB_PATH . "includes/template-loader.php";
 
 add_action("init", function () {
-    // Carregar traduções se necessário
+    // Carregar traduções
     load_plugin_textdomain(
         "pab",
         false,
@@ -43,22 +50,32 @@ add_action("init", function () {
     );
 });
 
-// ADICIONAR ESTE CÓDIGO PARA FORÇAR FLUSH DE REWRITE
+/**
+ * Hook de Ativação: Registra CPTs e atualiza regras de rewrite.
+ */
 register_activation_hook(__FILE__, "pab_activation");
 function pab_activation()
 {
-    // Registra os CPTs
+    // Registra os CPTs para garantir que existam
     require_once PAB_PATH . "includes/cpt-paciente.php";
     require_once PAB_PATH . "includes/cpt-avaliacao.php";
     require_once PAB_PATH . "includes/cpt-bioimpedancia.php";
     require_once PAB_PATH . "includes/cpt-medidas.php";
 
+    // Dispara os hooks 'init' manualmente para registro
+    do_action("init");
+
     // Força atualização das regras de URL
     flush_rewrite_rules();
 }
 
+/**
+ * Hook de Desativação: Apenas atualiza regras de rewrite.
+ */
 register_deactivation_hook(__FILE__, "pab_deactivation");
 function pab_deactivation()
 {
     flush_rewrite_rules();
 }
+
+// CORRIGIDO: Removida a chave '}' extra e o bloco de texto duplicado que estavam aqui.

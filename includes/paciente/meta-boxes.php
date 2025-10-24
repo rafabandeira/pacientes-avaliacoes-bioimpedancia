@@ -8,58 +8,58 @@
  * @subpackage Paciente
  */
 
-if (!defined('ABSPATH')) {
-    exit;
+if (!defined("ABSPATH")) {
+    exit();
 }
 
 // Incluir arquivos de metaboxes
-require_once __DIR__ . '/metaboxes/dados.php';
-require_once __DIR__ . '/metaboxes/avaliacoes.php';
-require_once __DIR__ . '/metaboxes/bioimpedancias.php';
-require_once __DIR__ . '/metaboxes/medidas.php';
+require_once __DIR__ . "/metaboxes/dados.php";
+require_once __DIR__ . "/metaboxes/avaliacoes.php";
+require_once __DIR__ . "/metaboxes/bioimpedancias.php";
+require_once __DIR__ . "/metaboxes/medidas.php";
 
 /**
  * Registra as metaboxes do paciente
  */
-add_action('add_meta_boxes', function () {
+add_action("add_meta_boxes", function () {
     // Metabox de dados cadastrais do paciente
     add_meta_box(
-        'pab_paciente_dados',
-        'Dados do Paciente',
-        'pab_paciente_dados_cb',
-        'pab_paciente',
-        'normal',
-        'high'
+        "pab_paciente_dados",
+        "Dados do Paciente",
+        "pab_paciente_dados_cb",
+        "pab_paciente",
+        "normal",
+        "high",
     );
 
     // Metabox de avaliações vinculadas
     add_meta_box(
-        'pab_paciente_avaliacoes',
-        'Avaliações do Paciente',
-        'pab_paciente_avaliacoes_cb',
-        'pab_paciente',
-        'normal',
-        'default'
+        "pab_paciente_avaliacoes",
+        "Avaliações do Paciente",
+        "pab_paciente_avaliacoes_cb",
+        "pab_paciente",
+        "normal",
+        "default",
     );
 
     // Metabox de bioimpedâncias vinculadas
     add_meta_box(
-        'pab_paciente_bioimps',
-        'Bioimpedâncias do Paciente',
-        'pab_paciente_bioimps_cb',
-        'pab_paciente',
-        'normal',
-        'default'
+        "pab_paciente_bioimps",
+        "Bioimpedâncias do Paciente",
+        "pab_paciente_bioimps_cb",
+        "pab_paciente",
+        "normal",
+        "default",
     );
 
     // Metabox de medidas vinculadas
     add_meta_box(
-        'pab_paciente_medidas',
-        'Medidas do Paciente',
-        'pab_paciente_medidas_cb',
-        'pab_paciente',
-        'normal',
-        'default'
+        "pab_paciente_medidas",
+        "Medidas do Paciente",
+        "pab_paciente_medidas_cb",
+        "pab_paciente",
+        "normal",
+        "default",
     );
 });
 
@@ -69,44 +69,36 @@ add_action('add_meta_boxes', function () {
  * Garante que bioimpedâncias e avaliações só possam ser criadas a partir
  * da tela do paciente, mantendo a integridade do vínculo.
  */
-add_action('load-post-new.php', function () {
-    $pt = isset($_GET['post_type'])
-        ? sanitize_text_field($_GET['post_type'])
-        : '';
+add_action("load-post-new.php", function () {
+    $pt = isset($_GET["post_type"])
+        ? sanitize_text_field($_GET["post_type"])
+        : "";
 
     // Se for tentativa de criar bioimpedância, avaliação ou medidas sem paciente vinculado
     if (
-        in_array($pt, ['pab_avaliacao', 'pab_bioimpedancia', 'pab_medidas']) &&
-        !isset($_GET['pab_attach'])
+        in_array($pt, ["pab_avaliacao", "pab_bioimpedancia", "pab_medidas"]) &&
+        !isset($_GET["pab_attach"])
     ) {
-        wp_redirect(admin_url('edit.php?post_type=pab_paciente'));
+        wp_redirect(admin_url("edit.php?post_type=pab_paciente"));
         exit();
     }
 
-    if (!isset($_GET['pab_attach'])) {
+    if (!isset($_GET["pab_attach"])) {
         return;
     }
 
-    $patient_id = (int) $_GET['pab_attach'];
-    if (!in_array($pt, ['pab_avaliacao', 'pab_bioimpedancia', 'pab_medidas'])) {
+    $patient_id = (int) $_GET["pab_attach"];
+    if (!in_array($pt, ["pab_avaliacao", "pab_bioimpedancia", "pab_medidas"])) {
         return;
     }
 
-    add_action('admin_footer', function () use ($patient_id, $pt) {
+    // CORRIGIDO: Removemos a chamada AJAX para sessão.
+    // Apenas injetar o input hidden é suficiente e mais robusto.
+    add_action("admin_footer", function () use ($patient_id, $pt) {
         ?>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
             const patientId = <?php echo (int) $patient_id; ?>;
-
-            // Armazenar na sessão via AJAX
-            if (typeof jQuery !== 'undefined') {
-                jQuery.post(ajaxurl, {
-                    action: 'pab_store_attachment',
-                    patient_id: patientId,
-                    post_type: '<?php echo esc_js($pt); ?>',
-                    nonce: '<?php echo wp_create_nonce('pab_attachment'); ?>'
-                });
-            }
 
             // Cria um input hidden com o paciente
             const form = document.getElementById('post');
@@ -116,15 +108,6 @@ add_action('load-post-new.php', function () {
                 hidden.name = 'pab_paciente_id';
                 hidden.value = patientId;
                 form.appendChild(hidden);
-
-                // Adicionar ao título para debug
-                const titleDiv = document.getElementById('titlediv');
-                if (titleDiv && titleDiv.style.display === 'none') {
-                    const titleInput = titleDiv.querySelector('#title');
-                    if (titleInput && !titleInput.value) {
-                        titleInput.value = 'Vinculado ao paciente ID: ' + patientId;
-                    }
-                }
             }
         });
         </script>
@@ -133,29 +116,9 @@ add_action('load-post-new.php', function () {
 });
 
 /**
- * Handler AJAX para armazenar informação de attachment temporariamente
+ * Handler AJAX para armazenar informação de attachment
+ *
+ * REMOVIDO. Esta lógica baseada em sessão era frágil e
+ * foi substituída pelo input hidden injetado no 'load-post-new.php'.
  */
-add_action('wp_ajax_pab_store_attachment', function () {
-    if (!wp_verify_nonce($_POST['nonce'], 'pab_attachment')) {
-        wp_die('Nonce inválido');
-    }
-
-    $patient_id = (int) $_POST['patient_id'];
-    $post_type = sanitize_text_field($_POST['post_type']);
-
-    if ($patient_id && in_array($post_type, ['pab_avaliacao', 'pab_bioimpedancia', 'pab_medidas'])) {
-        // Armazenar na sessão do WordPress
-        if (!session_id()) {
-            session_start();
-        }
-        $_SESSION['pab_pending_attachment'] = [
-            'patient_id' => $patient_id,
-            'post_type' => $post_type,
-            'timestamp' => time()
-        ];
-
-        wp_send_json_success(['stored' => true]);
-    }
-
-    wp_send_json_error(['message' => 'Dados inválidos']);
-});
+// add_action('wp_ajax_pab_store_attachment', ...); // Removido
