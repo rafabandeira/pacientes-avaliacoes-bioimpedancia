@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Pacientes, Avaliações e Bioimpedâncias
  * Description: CPT principal Paciente + Avaliação + Bioimpedância, metaboxes, associações automáticas, avatares, OMS, gráficos.
- * Version: 1.0.10
+ * Version: 1.0.11
  * Author: BandeiraGroup
  * Text Domain: pab
  */
