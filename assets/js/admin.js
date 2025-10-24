@@ -117,6 +117,56 @@ jQuery(function ($) {
         $(this).val(value.toFixed(decimals));
       }
     });
+
+    // Suporte a vírgulas decimais em campos de medidas
+    $(".pab-decimal-input").on("input", function () {
+      // Permitir números, vírgulas e pontos
+      this.value = this.value.replace(/[^0-9.,]/g, "");
+
+      // Substituir vírgulas por pontos para padronização
+      let value = this.value.replace(/,/g, ".");
+
+      // Garantir apenas um separador decimal
+      const parts = value.split(".");
+      if (parts.length > 2) {
+        value = parts[0] + "." + parts.slice(1).join("");
+      }
+
+      // Limitar a 1 casa decimal
+      if (parts[1] && parts[1].length > 1) {
+        value = parseFloat(value).toFixed(1);
+      }
+
+      this.value = value;
+    });
+
+    $(".pab-decimal-input").on("blur", function () {
+      // Formatação final ao sair do campo
+      let value = this.value.replace(/,/g, ".");
+
+      if (value && !isNaN(parseFloat(value))) {
+        // Formatar com uma casa decimal
+        this.value = parseFloat(value).toFixed(1);
+
+        // Validação visual
+        if (parseFloat(value) >= 0) {
+          $(this).css({
+            "border-color": "#10b981",
+            "background-color": "#f0fdf4",
+          });
+        }
+      } else if (value === "") {
+        $(this).css({
+          "border-color": "#e2e8f0",
+          "background-color": "white",
+        });
+      } else {
+        $(this).css({
+          "border-color": "#dc2626",
+          "background-color": "#fef2f2",
+        });
+      }
+    });
   }
 
   // ================================================================
@@ -538,4 +588,10 @@ jQuery(function ($) {
         `;
     $("head").append(dynamicStyles);
   }
+
+  // ================================================================
+  // CPTs PAB - EDITOR E TÍTULO REMOVIDOS VIA CSS
+  // ================================================================
+  // Editor e título são escondidos via CSS no includes/assets.php
+  // Não há necessidade de manipulação JavaScript adicional
 });

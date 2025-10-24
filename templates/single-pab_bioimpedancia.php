@@ -60,12 +60,12 @@ function pab_add_bioimpedancia_opengraph(
     $labels_imc = [
         "abaixo" => "Baixo Peso",
         "normal" => "Normal",
-        "acima1" => "Sobrepeso",
-        "acima2" => "Obesidade I",
-        "acima3" => "Obesidade II",
-        "alto1" => "Obesidade III",
-        "alto2" => "Obesidade III",
-        "alto3" => "Obesidade III",
+        "acima1" => "Acima I",
+        "acima2" => "Acima II",
+        "acima3" => "Acima III",
+        "alto1" => "Alto I",
+        "alto2" => "Alto II",
+        "alto3" => "Alto III",
     ];
 
     $classificacao = $labels_imc[$nivel] ?? "Normal";
@@ -195,350 +195,511 @@ add_action(
     },
     1,
 );
-
-get_header();
 ?>
+<!DOCTYPE html>
+<html <?php language_attributes(); ?>>
+<head>
+    <meta charset="<?php bloginfo("charset"); ?>">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title><?php echo esc_html(
+        $patient_name . " - Bioimpedância - " . get_the_date("d/m/Y"),
+    ); ?></title>
 
-<style>
-    body {
-        background-color: #f8f9fa;
-    }
+    <!-- Favicon básico -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 
-    .pab-public-container {
-        max-width: 1200px;
-        margin: 20px auto;
-        padding: 20px;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
+    <?php wp_head(); ?>
 
-    .pab-public-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 30px;
-        border-radius: 12px;
-        margin-bottom: 30px;
-        text-align: center;
-    }
-
-    .pab-public-header h1 {
-        margin: 0 0 10px 0;
-        font-size: 28px;
-        font-weight: 600;
-    }
-
-    .pab-public-header .meta {
-        opacity: 0.9;
-        font-size: 14px;
-    }
-
-    /* Metaboxes estilizadas como na página de edição */
-    .pab-metabox {
-        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-        border-radius: 12px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        overflow: hidden;
-    }
-
-    .pab-metabox-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 16px 20px;
-        font-weight: 600;
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .pab-metabox-header.avatars {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-
-    .pab-metabox-content {
-        padding: 24px;
-        background: white;
-    }
-
-    /* Grid de dados similar ao admin */
-    .pab-data-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 16px;
-        margin: 20px 0;
-    }
-
-    .pab-data-item {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .pab-data-label {
-        font-weight: 600;
-        color: #374151;
-        font-size: 13px;
-        margin-bottom: 6px;
-    }
-
-    .pab-data-value {
-        padding: 10px 12px;
-        border: 2px solid #e2e8f0;
-        border-radius: 8px;
-        font-size: 14px;
-        background: #f8fafc;
-        color: #374151;
-    }
-
-    .pab-data-classification {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        margin-left: 8px;
-    }
-
-    .pab-data-classification.normal { background: #d4edda; color: #155724; }
-    .pab-data-classification.abaixo { background: #fff3cd; color: #856404; }
-    .pab-data-classification.acima1 { background: #f8d7da; color: #721c24; }
-    .pab-data-classification.acima2 { background: #f8d7da; color: #721c24; }
-    .pab-data-classification.acima3 { background: #f8d7da; color: #721c24; }
-    .pab-data-classification.alto1, .pab-data-classification.alto2, .pab-data-classification.alto3 {
-        background: #dc3545; color: white;
-    }
-
-    /* Avatares estilizados */
-    .pab-avatars-container {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 0;
-        width: 100%;
-        overflow-x: auto;
-        overflow-y: hidden;
-        padding: 20px 0 15px 0;
-        margin: 20px 0;
-    }
-
-    .pab-avatar-wrapper {
-        flex-shrink: 0;
-        flex-grow: 1;
-        flex-basis: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .pab-avatar {
-        border: 3px solid transparent;
-        padding: 0;
-        margin: 0;
-        border-radius: 0;
-        background: #f8f9fa;
-        transition: all 0.3s ease;
-        text-align: center;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        min-height: 100px;
-        width: 100%;
-    }
-
-    .pab-avatar-wrapper:first-child .pab-avatar {
-        border-top-left-radius: 8px;
-        border-bottom-left-radius: 8px;
-    }
-
-    .pab-avatar-wrapper:last-child .pab-avatar {
-        border-top-right-radius: 8px;
-        border-bottom-right-radius: 8px;
-    }
-
-    .pab-avatar.active {
-        border-color: #228be6;
-        background: rgba(34, 139, 230, 0.15);
-        transform: scale(1.05);
-        box-shadow: 0 4px 16px rgba(34, 139, 230, 0.4);
-        z-index: 10;
-        border-radius: 8px !important;
-    }
-
-    .pab-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        display: block;
-    }
-
-    .pab-avatar.active::after {
-        content: "✓";
-        position: absolute;
-        top: -10px;
-        right: -10px;
-        background: #228be6;
-        color: white;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 14px;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.3);
-    }
-
-    .pab-avatar-label {
-        margin-top: 8px;
-        font-size: 11px;
-        color: #999;
-        text-align: center;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        transition: all 0.3s ease;
-    }
-
-    .pab-avatar-label.active {
-        color: #228be6;
-        font-weight: 700;
-        font-size: 12px;
-        transform: scale(1.05);
-    }
-
-    /* Cards de composição corporal */
-    .pab-comp-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 20px;
-        margin: 20px 0;
-    }
-
-    .pab-comp-card {
-        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border-left: 4px solid #3b82f6;
-    }
-
-    .pab-comp-card h4 {
-        margin: 0 0 12px 0;
-        font-size: 16px;
-        font-weight: 600;
-        color: #1e293b;
-        display: flex;
-        align-items: center;
-    }
-
-    .pab-comp-card .icon {
-        font-size: 24px;
-        margin-right: 12px;
-    }
-
-    .pab-comp-value {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1e40af;
-        margin-bottom: 8px;
-    }
-
-    .pab-comp-ref {
-        font-size: 12px;
-        color: #64748b;
-        background: #f1f5f9;
-        padding: 6px 10px;
-        border-radius: 6px;
-        margin-top: 8px;
-    }
-
-    /* Alertas */
-    .pab-alert {
-        padding: 16px 20px;
-        border-radius: 10px;
-        margin: 16px 0;
-        font-size: 14px;
-        line-height: 1.6;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .pab-alert::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-        background: currentColor;
-    }
-
-    .pab-alert-info {
-        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        color: #1e40af;
-        border: 1px solid #3b82f6;
-    }
-
-    .pab-alert-warning {
-        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        color: #92400e;
-        border: 1px solid #f59e0b;
-    }
-
-    /* Footer */
-    .pab-footer {
-        text-align: center;
-        padding: 30px;
-        color: #999;
-        font-size: 13px;
-        margin-top: 40px;
-        border-top: 1px solid #e5e7eb;
-    }
-
-    /* Responsividade */
-    @media (max-width: 768px) {
-        .pab-public-container {
-            margin: 10px;
-            padding: 15px;
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        .pab-public-header {
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             padding: 20px;
         }
 
-        .pab-data-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .pab-comp-cards {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    /* Print styles */
-    @media print {
-        body { background-color: #fff; }
         .pab-public-container {
-            max-width: 100%;
-            margin: 0;
-            padding: 0;
-            box-shadow: none;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
+
         .pab-public-header {
-            background: #667eea !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
         }
+
+        .pab-public-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .pab-public-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .pab-public-header .meta {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
         .pab-metabox {
-            box-shadow: none;
-            border: 1px solid #ddd;
+            margin: 40px;
+            background: #f8fafc;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-        .pab-footer { display: none; }
-    }
-</style>
+
+        .pab-metabox-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 20px 30px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .pab-metabox-header.avatars {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        }
+
+        .pab-metabox-content {
+            padding: 30px;
+            background: white;
+        }
+
+        /* Grid de dados similar ao padrão medidas */
+        .pab-data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .pab-data-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .pab-data-section:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .pab-section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .pab-section-icon {
+            font-size: 2rem;
+        }
+
+        .pab-section-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #1e40af;
+        }
+
+        .pab-data-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .pab-data-item:last-child {
+            border-bottom: none;
+        }
+
+        .pab-data-label {
+            font-weight: 500;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .pab-data-value {
+            font-weight: 600;
+            color: #1e40af;
+            font-size: 14px;
+            padding: 8px 12px;
+            background: #f0f9ff;
+            border-radius: 6px;
+            border: 1px solid #dbeafe;
+        }
+
+        .pab-data-classification {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .pab-data-classification.normal { background: #d4edda; color: #155724; }
+        .pab-data-classification.abaixo { background: #fff3cd; color: #856404; }
+        .pab-data-classification.acima1 { background: #f8d7da; color: #721c24; }
+        .pab-data-classification.acima2 { background: #f8d7da; color: #721c24; }
+        .pab-data-classification.acima3 { background: #f8d7da; color: #721c24; }
+        .pab-data-classification.alto1, .pab-data-classification.alto2, .pab-data-classification.alto3 {
+            background: #dc3545; color: white;
+        }
+
+        /* Avatares estilizados */
+        .pab-avatars-container {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 0;
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 20px 0 15px 0;
+            margin: 20px 0;
+        }
+
+        .pab-avatar-wrapper {
+            flex-shrink: 0;
+            flex-grow: 1;
+            flex-basis: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .pab-avatar {
+            border: 3px solid transparent;
+            padding: 0;
+            margin: 0;
+            border-radius: 0;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            min-height: 100px;
+            width: 100%;
+        }
+
+        .pab-avatar-wrapper:first-child .pab-avatar {
+            border-top-left-radius: 8px;
+            border-bottom-left-radius: 8px;
+        }
+
+        .pab-avatar-wrapper:last-child .pab-avatar {
+            border-top-right-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+
+        .pab-avatar.active {
+            border-color: #228be6;
+            background: rgba(34, 139, 230, 0.15);
+            transform: scale(1.05);
+            box-shadow: 0 4px 16px rgba(34, 139, 230, 0.4);
+            z-index: 10;
+            border-radius: 8px !important;
+        }
+
+        .pab-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .pab-avatar.active::after {
+            content: "✓";
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #228be6;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        }
+
+        .pab-avatar-label {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #999;
+            text-align: center;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .pab-avatar-label.active {
+            color: #228be6;
+            font-weight: 700;
+            font-size: 12px;
+            transform: scale(1.05);
+        }
+
+        /* Cards de composição corporal - padrão medidas */
+        .pab-comp-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+            width: 100%;
+        }
+
+        .pab-comp-cards .pab-data-grid {
+            width: 100%;
+        }
+
+        .pab-comp-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            width: calc(50% - 10px);
+            margin: 0;
+        }
+
+        .pab-comp-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .pab-comp-cards .pab-comp-card h4 {
+                margin: 0 0 20px 0;
+                font-size: 1.4rem;
+                font-weight: 600;
+                color: #1e40af;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding-bottom: 15px;
+                border-bottom: 2px solid #f1f5f9;
+            }
+
+        .pab-comp-cards .pab-comp-card .icon {
+            font-size: 2rem;
+        }
+
+        .pab-comp-cards .pab-comp-value {
+                font-size: 1.8rem;
+                font-weight: 700;
+                color: #1e40af;
+                margin-bottom: 12px;
+                padding: 12px 16px;
+                background: #f0f9ff;
+                border-radius: 8px;
+                border: 1px solid #dbeafe;
+                text-align: center;
+            }
+
+        .pab-comp-cards .pab-comp-ref {
+            font-size: 13px;
+            color: #64748b;
+            background: #f8fafc;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-top: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Alertas */
+        .pab-alert {
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin: 16px 0;
+            font-size: 14px;
+            line-height: 1.6;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pab-alert::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: currentColor;
+        }
+
+        .pab-alert-info {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+
+        .pab-alert-warning {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+            border: 1px solid #f59e0b;
+        }
+
+        /* Footer - padrão medidas */
+        .pab-footer {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+            font-size: 14px;
+            margin-top: 40px;
+            border-top: 2px solid #f1f5f9;
+            background: #f8fafc;
+        }
+
+        .pab-footer strong {
+            color: #1e40af;
+        }
+
+        /* Responsive - padrão medidas */
+        @media (max-width: 768px) {
+            .pab-public-container {
+                margin: 10px;
+                border-radius: 12px;
+            }
+
+            .pab-public-header {
+                padding: 30px 20px;
+            }
+
+            .pab-public-header h1 {
+                font-size: 2rem;
+            }
+
+            .pab-metabox {
+                margin: 20px;
+            }
+
+            .pab-comp-cards {
+                padding: 15px;
+                gap: 15px;
+            }
+            .pab-comp-card {
+                width: 100%;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .pab-public-container {
+                box-shadow: none;
+                border-radius: 0;
+            }
+
+            .pab-public-header {
+                background: #1e40af !important;
+                -webkit-print-color-adjust: exact;
+            }
+
+            .pab-metabox {
+                break-inside: avoid;
+                margin: 20px 0;
+            }
+
+            .pab-footer {
+                margin-top: 20px;
+                padding: 20px;
+            }
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .pab-public-container {
+                margin: 10px;
+                padding: 15px;
+            }
+
+            .pab-public-header {
+                padding: 20px;
+            }
+
+            .pab-data-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pab-comp-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            body { background-color: #fff; }
+            .pab-public-container {
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+            }
+            .pab-public-header {
+                background: #667eea !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .pab-metabox {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+            .pab-footer { display: none; }
+        }
+    </style>
+</head>
+
+<body>
 
 <div class="pab-public-container">
 
@@ -670,16 +831,7 @@ get_header();
                 <div class="pab-alert pab-alert-info">
                     <strong>ℹ️ Informação:</strong> Dados de bioimpedância não disponíveis para análise detalhada.
                 </div>
-            <?php
-                // Faixa de peso ideal baseada no IMC normal (18.5-24.9)
-                // Valores de referência para gordura corporal por gênero e idade
-                // Valores de referência para músculo esquelético por gênero e idade
-                // Cálculo aproximado do metabolismo basal por Mifflin-St Jeor
-                // Faixa de peso ideal baseada no IMC normal (18.5-24.9)
-                // Valores de referência para gordura corporal por gênero e idade
-                // Valores de referência para músculo esquelético por gênero e idade
-                // Cálculo aproximado do metabolismo basal por Mifflin-St Jeor
-                else: ?>
+            <?php else: ?>
                 <div class="pab-comp-cards">
                     <!-- Card: Peso -->
                     <?php if ($peso): ?>
@@ -700,9 +852,15 @@ get_header();
                                 24.9 * ($altura_m * $altura_m),
                                 1,
                             );
-                            $peso_medio_ideal =
-                                ($peso_ideal_min + $peso_ideal_max) / 2;
-                            $delta_peso = $peso - $peso_medio_ideal;
+                            if ($peso < $peso_ideal_min) {
+                                $delta_peso = $peso - $peso_ideal_min;
+                            } elseif ($peso > $peso_ideal_max) {
+                                $delta_peso = $peso - $peso_ideal_max;
+                            } else {
+                                $peso_medio_ideal =
+                                    ($peso_ideal_min + $peso_ideal_max) / 2;
+                                $delta_peso = $peso - $peso_medio_ideal;
+                            }
                             ?>
                             <div style="margin: 8px 0; padding: 8px; background: #f1f5f9; border-radius: 6px;">
                                 <strong style="color: <?php echo $delta_peso > 0
@@ -1123,14 +1281,16 @@ get_header();
     </div>
     <?php endif; ?>
 
-    <!-- Footer -->
+    <!-- Rodapé -->
     <div class="pab-footer">
-        <p><strong>Relatório gerado em <?php echo current_time(
-            "d/m/Y",
-        ); ?> às <?php echo current_time("H:i"); ?></strong></p>
-        <p><small>Este documento é confidencial e destinado exclusivamente ao paciente identificado.</small></p>
-        <p><small>Desenvolvido com o Plugin Pacientes, Avaliações e Bioimpedância</small></p>
+        <p>
+            <strong>Sistema de Bioimpedância da Clínica Thayse Brito</strong><br>
+            Relatório gerado em <?php echo date("d/m/Y \à\s H:i"); ?><br>
+            <small>Este documento contém informações confidenciais do paciente.</small>
+        </p>
     </div>
+
+    <?php wp_footer(); ?>
 
 </div>
 
@@ -1155,4 +1315,5 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php get_footer(); ?>
+</body>
+</html>

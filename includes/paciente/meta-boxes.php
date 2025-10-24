@@ -16,6 +16,7 @@ if (!defined('ABSPATH')) {
 require_once __DIR__ . '/metaboxes/dados.php';
 require_once __DIR__ . '/metaboxes/avaliacoes.php';
 require_once __DIR__ . '/metaboxes/bioimpedancias.php';
+require_once __DIR__ . '/metaboxes/medidas.php';
 
 /**
  * Registra as metaboxes do paciente
@@ -50,6 +51,16 @@ add_action('add_meta_boxes', function () {
         'normal',
         'default'
     );
+
+    // Metabox de medidas vinculadas
+    add_meta_box(
+        'pab_paciente_medidas',
+        'Medidas do Paciente',
+        'pab_paciente_medidas_cb',
+        'pab_paciente',
+        'normal',
+        'default'
+    );
 });
 
 /**
@@ -63,9 +74,9 @@ add_action('load-post-new.php', function () {
         ? sanitize_text_field($_GET['post_type'])
         : '';
 
-    // Se for tentativa de criar bioimpedância ou avaliação sem paciente vinculado
+    // Se for tentativa de criar bioimpedância, avaliação ou medidas sem paciente vinculado
     if (
-        in_array($pt, ['pab_avaliacao', 'pab_bioimpedancia']) &&
+        in_array($pt, ['pab_avaliacao', 'pab_bioimpedancia', 'pab_medidas']) &&
         !isset($_GET['pab_attach'])
     ) {
         wp_redirect(admin_url('edit.php?post_type=pab_paciente'));
@@ -77,7 +88,7 @@ add_action('load-post-new.php', function () {
     }
 
     $patient_id = (int) $_GET['pab_attach'];
-    if (!in_array($pt, ['pab_avaliacao', 'pab_bioimpedancia'])) {
+    if (!in_array($pt, ['pab_avaliacao', 'pab_bioimpedancia', 'pab_medidas'])) {
         return;
     }
 
@@ -132,7 +143,7 @@ add_action('wp_ajax_pab_store_attachment', function () {
     $patient_id = (int) $_POST['patient_id'];
     $post_type = sanitize_text_field($_POST['post_type']);
 
-    if ($patient_id && in_array($post_type, ['pab_avaliacao', 'pab_bioimpedancia'])) {
+    if ($patient_id && in_array($post_type, ['pab_avaliacao', 'pab_bioimpedancia', 'pab_medidas'])) {
         // Armazenar na sessão do WordPress
         if (!session_id()) {
             session_start();

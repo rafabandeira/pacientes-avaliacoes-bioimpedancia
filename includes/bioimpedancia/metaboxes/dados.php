@@ -8,8 +8,8 @@
  * @subpackage Bioimpedancia\Metaboxes
  */
 
-if (!defined('ABSPATH')) {
-    exit;
+if (!defined("ABSPATH")) {
+    exit();
 }
 
 /**
@@ -21,14 +21,13 @@ function pab_bi_dados_cb($post)
 {
     // Nonce já foi adicionado no metabox do paciente, não duplicar
     $f = [
-        'peso' => pab_get($post->ID, 'pab_bi_peso'),
-        'gc' => pab_get($post->ID, 'pab_bi_gordura_corporal'),
-        'me' => pab_get($post->ID, 'pab_bi_musculo_esq'),
-        'gv' => pab_get($post->ID, 'pab_bi_gordura_visc'),
-        'mb' => pab_get($post->ID, 'pab_bi_metab_basal'),
-        'idade' => pab_get($post->ID, 'pab_bi_idade_corporal'),
-    ];
-    ?>
+        "peso" => pab_get($post->ID, "pab_bi_peso"),
+        "gc" => pab_get($post->ID, "pab_bi_gordura_corporal"),
+        "me" => pab_get($post->ID, "pab_bi_musculo_esq"),
+        "gv" => pab_get($post->ID, "pab_bi_gordura_visc"),
+        "mb" => pab_get($post->ID, "pab_bi_metab_basal"),
+        "idade" => pab_get($post->ID, "pab_bi_idade_corporal"),
+    ]; ?>
 
     <div class="pab-fade-in">
         <div class="pab-grid">
@@ -37,7 +36,7 @@ function pab_bi_dados_cb($post)
                 <input type="number"
                        step="0.1"
                        name="pab_bi_peso"
-                       value="<?php echo esc_attr($f['peso']); ?>"
+                       value="<?php echo esc_attr($f["peso"]); ?>"
                        placeholder="Ex: 70.5">
             </label>
 
@@ -46,7 +45,7 @@ function pab_bi_dados_cb($post)
                 <input type="number"
                        step="0.1"
                        name="pab_bi_gordura_corporal"
-                       value="<?php echo esc_attr($f['gc']); ?>"
+                       value="<?php echo esc_attr($f["gc"]); ?>"
                        placeholder="Ex: 18.5">
             </label>
 
@@ -55,16 +54,16 @@ function pab_bi_dados_cb($post)
                 <input type="number"
                        step="0.1"
                        name="pab_bi_musculo_esq"
-                       value="<?php echo esc_attr($f['me']); ?>"
+                       value="<?php echo esc_attr($f["me"]); ?>"
                        placeholder="Ex: 35.2">
             </label>
 
             <label>
                 <strong>🫀 Gordura Visceral (nível)</strong>
                 <input type="number"
-                       step="0.1"
+                       step="1"
                        name="pab_bi_gordura_visc"
-                       value="<?php echo esc_attr($f['gv']); ?>"
+                       value="<?php echo esc_attr($f["gv"]); ?>"
                        placeholder="Ex: 8.0">
             </label>
 
@@ -73,7 +72,7 @@ function pab_bi_dados_cb($post)
                 <input type="number"
                        step="1"
                        name="pab_bi_metab_basal"
-                       value="<?php echo esc_attr($f['mb']); ?>"
+                       value="<?php echo esc_attr($f["mb"]); ?>"
                        placeholder="Ex: 1580">
             </label>
 
@@ -82,7 +81,7 @@ function pab_bi_dados_cb($post)
                 <input type="number"
                        step="1"
                        name="pab_bi_idade_corporal"
-                       value="<?php echo esc_attr($f['idade']); ?>"
+                       value="<?php echo esc_attr($f["idade"]); ?>"
                        placeholder="Ex: 28">
             </label>
         </div>

@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: Pacientes, Avaliações e Bioimpedância
+ * Plugin Name: Pacientes, Avaliações e Bioimpedâncias
  * Description: CPT principal Paciente + Avaliação + Bioimpedância, metaboxes, associações automáticas, avatares, OMS, gráficos.
- * Version: 1.0.9
+ * Version: 1.0.10
  * Author: BandeiraGroup
  * Text Domain: pab
  */
@@ -19,6 +19,7 @@ require_once PAB_PATH . "includes/assets.php";
 require_once PAB_PATH . "includes/cpt-paciente.php";
 require_once PAB_PATH . "includes/cpt-avaliacao.php";
 require_once PAB_PATH . "includes/cpt-bioimpedancia.php";
+require_once PAB_PATH . "includes/cpt-medidas.php";
 
 // Estrutura Modular - Funções Compartilhadas
 require_once PAB_PATH . "includes/shared/calculations.php";
@@ -27,6 +28,7 @@ require_once PAB_PATH . "includes/shared/calculations.php";
 require_once PAB_PATH . "includes/paciente/meta-boxes.php";
 require_once PAB_PATH . "includes/avaliacao/meta-boxes.php";
 require_once PAB_PATH . "includes/bioimpedancia/meta-boxes.php";
+require_once PAB_PATH . "includes/medidas/meta-boxes.php";
 
 require_once PAB_PATH . "includes/admin-listings.php";
 require_once PAB_PATH . "includes/charts.php";
@@ -49,6 +51,7 @@ function pab_activation()
     require_once PAB_PATH . "includes/cpt-paciente.php";
     require_once PAB_PATH . "includes/cpt-avaliacao.php";
     require_once PAB_PATH . "includes/cpt-bioimpedancia.php";
+    require_once PAB_PATH . "includes/cpt-medidas.php";
 
     // Força atualização das regras de URL
     flush_rewrite_rules();

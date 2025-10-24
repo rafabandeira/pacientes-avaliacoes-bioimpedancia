@@ -1,11 +1,11 @@
 <?php
 /**
- * Registro de Metaboxes - Bioimpedância
+ * Registro de Metaboxes - Medidas
  *
- * Registra todas as metaboxes que aparecem na tela de edição do post type pab_bioimpedancia
+ * Registra todas as metaboxes que aparecem na tela de edição do post type pab_medidas
  *
  * @package PAB
- * @subpackage Bioimpedancia
+ * @subpackage Medidas
  */
 
 if (!defined("ABSPATH")) {
@@ -14,78 +14,54 @@ if (!defined("ABSPATH")) {
 
 // Incluir arquivos de metaboxes
 require_once __DIR__ . "/metaboxes/paciente.php";
-require_once __DIR__ . "/metaboxes/dados.php";
-require_once __DIR__ . "/metaboxes/avatares.php";
-require_once __DIR__ . "/metaboxes/composicao.php";
-require_once __DIR__ . "/metaboxes/diagnostico.php";
+require_once __DIR__ . "/metaboxes/corporais.php";
 require_once __DIR__ . "/metaboxes/historico.php";
 
 /**
- * Registra as metaboxes da bioimpedância
+ * Registra as metaboxes das medidas
  */
 add_action("add_meta_boxes", function () {
-    // Metabox de paciente vinculado (sidebar)
+    // Metabox de paciente vinculado
     add_meta_box(
-        "pab_bi_paciente",
+        "pab_med_paciente",
         "Paciente vinculado",
-        "pab_bi_paciente_cb",
-        "pab_bioimpedancia",
+        "pab_med_paciente_cb",
+        "pab_medidas",
         "side",
         "high",
     );
 
-    // Metabox de dados de bioimpedância
+    // Metabox de medidas corporais
     add_meta_box(
-        "pab_bi_dados",
-        "Dados de Bioimpedância",
-        "pab_bi_dados_cb",
-        "pab_bioimpedancia",
+        "pab_med_corporais",
+        "Medidas Corporais (cm)",
+        "pab_med_corporais_cb",
+        "pab_medidas",
         "normal",
         "high",
     );
 
-    // Metabox de avatares (classificação visual)
-    add_meta_box(
-        "pab_bi_avatares",
-        "Avatares (OMS)",
-        "pab_bi_avatares_cb",
-        "pab_bioimpedancia",
-        "normal",
-        "default",
-        ["__back_compat_meta_box" => false, "class" => "postbox-bio-avatars"],
-    );
-
-    // Metabox de análise corporal completa (unificada)
-    add_meta_box(
-        "pab_bi_comp_tab",
-        "Análise Corporal Completa",
-        "pab_bi_comp_tab_cb",
-        "pab_bioimpedancia",
-        "normal",
-        "default",
-    );
-
     // Metabox de histórico
     add_meta_box(
-        "pab_bi_historico",
+        "pab_med_historico",
         "Histórico",
-        "pab_bi_historico_cb",
-        "pab_bioimpedancia",
+        "pab_med_historico_cb",
+        "pab_medidas",
         "normal",
         "default",
     );
 });
 
 /**
- * Salva os dados da bioimpedância
+ * Salva os dados das medidas
  *
  * @param int $post_id ID do post
  */
 add_action(
-    "save_post_pab_bioimpedancia",
+    "save_post_pab_medidas",
     function ($post_id) {
         // Debug log
-        error_log("PAB DEBUG: Iniciando salvamento bioimpedancia ID: $post_id");
+        error_log("PAB DEBUG: Iniciando salvamento medidas ID: $post_id");
         error_log(
             "PAB DEBUG: Ação atual: " .
                 (isset($_REQUEST["action"])
@@ -126,8 +102,8 @@ add_action(
 
         // Verificar nonce
         $has_valid_nonce =
-            isset($_POST["pab_bi_nonce"]) &&
-            wp_verify_nonce($_POST["pab_bi_nonce"], "pab_bi_save");
+            isset($_POST["pab_med_nonce"]) &&
+            wp_verify_nonce($_POST["pab_med_nonce"], "pab_med_save");
 
         if (!$has_valid_nonce) {
             error_log("PAB DEBUG: Nonce inválido para post $post_id");
@@ -170,24 +146,41 @@ add_action(
         if (isset($_POST["pab_paciente_id"])) {
             $patient_id = (int) $_POST["pab_paciente_id"];
             error_log(
-                "PAB DEBUG: Vinculando bioimpedancia $post_id ao paciente $patient_id",
+                "PAB DEBUG: Vinculando medidas $post_id ao paciente $patient_id",
             );
             pab_link_to_patient($post_id, $patient_id);
         }
 
-        // Salvamento dos Campos Numéricos
+        // Lista de campos das medidas corporais
         $fields = [
-            "pab_bi_peso",
-            "pab_bi_gordura_corporal",
-            "pab_bi_musculo_esq",
-            "pab_bi_gordura_visc",
-            "pab_bi_metab_basal",
-            "pab_bi_idade_corporal",
+            "pab_med_pescoco",
+            "pab_med_torax",
+            "pab_med_braco_direito",
+            "pab_med_braco_esquerdo",
+            "pab_med_abd_superior",
+            "pab_med_cintura",
+            "pab_med_abd_inferior",
+            "pab_med_quadril",
+            "pab_med_coxa_direita",
+            "pab_med_coxa_esquerda",
+            "pab_med_panturrilha_direita",
+            "pab_med_panturrilha_esquerda",
         ];
 
+        // Salvar cada campo
         foreach ($fields as $k) {
             if (isset($_POST[$k]) && $_POST[$k] !== "") {
                 $value = sanitize_text_field($_POST[$k]);
+
+                // Converter vírgulas para pontos para padronizar formato decimal
+                $value = str_replace(",", ".", $value);
+
+                // Validar se é um número válido
+                if (is_numeric($value)) {
+                    // Formatar com 1 casa decimal
+                    $value = number_format((float) $value, 1, ".", "");
+                }
+
                 error_log("PAB DEBUG: Salvando $k = $value");
                 update_post_meta($post_id, $k, $value);
             } else {
@@ -210,7 +203,7 @@ add_action(
             if ($patient_id) {
                 $patient_name =
                     get_the_title($patient_id) ?: "Paciente Sem Nome";
-                $new_title = trim("$patient_name - Bioimpedância - $post_id");
+                $new_title = trim("$patient_name - Medidas - $post_id");
                 $new_slug = sanitize_title($new_title);
 
                 global $wpdb;
@@ -230,26 +223,24 @@ add_action(
             }
         }
 
-        error_log(
-            "PAB DEBUG: Finalizando salvamento bioimpedancia ID: $post_id",
-        );
+        error_log("PAB DEBUG: Finalizando salvamento medidas ID: $post_id");
 
         // Limpar flag de processamento
         unset($processing[$post_id]);
     },
-    10,
+    20,
     1,
 );
 
 /**
- * Hook para controlar o status dos posts de bioimpedância
+ * Hook para controlar o status dos posts de medidas
  * Executado ANTES do save_post para garantir o status correto
  */
 add_action(
     "wp_insert_post_data",
     function ($data, $postarr) {
-        // Só processar bioimpedâncias
-        if ($data["post_type"] !== "pab_bioimpedancia") {
+        // Só processar medidas
+        if ($data["post_type"] !== "pab_medidas") {
             return $data;
         }
 
@@ -282,14 +273,12 @@ add_action(
             return $data;
         }
 
-        // Garantir que bioimpedâncias sejam sempre publicadas
+        // Garantir que medidas sejam sempre publicadas
         if (
             $data["post_status"] === "draft" ||
             $data["post_status"] === "auto-draft"
         ) {
-            error_log(
-                "PAB DEBUG: Forçando status 'publish' para bioimpedância",
-            );
+            error_log("PAB DEBUG: Forçando status 'publish' para medidas");
             $data["post_status"] = "publish";
         }
 

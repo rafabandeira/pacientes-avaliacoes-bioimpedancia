@@ -1,11 +1,11 @@
 <?php
 /**
- * Metabox: Paciente Vinculado (Avaliação)
+ * Metabox: Paciente Vinculado (Medidas)
  *
- * Exibe informações do paciente vinculado à avaliação
+ * Exibe informações do paciente vinculado às medidas
  *
  * @package PAB
- * @subpackage Avaliacao\Metaboxes
+ * @subpackage Medidas\Metaboxes
  */
 
 if (!defined('ABSPATH')) {
@@ -17,10 +17,10 @@ if (!defined('ABSPATH')) {
  *
  * @param WP_Post $post O post atual
  */
-function pab_av_paciente_cb($post)
+function pab_med_paciente_cb($post)
 {
     // Adicionar nonce para garantir segurança do salvamento
-    wp_nonce_field('pab_av_save', 'pab_av_nonce');
+    wp_nonce_field('pab_med_save', 'pab_med_nonce');
 
     $pid = (int) pab_get($post->ID, 'pab_paciente_id');
     $pid_from_post = isset($_POST['pab_paciente_id'])
@@ -30,7 +30,7 @@ function pab_av_paciente_cb($post)
 
     if (!$patient_id_to_show) {
         echo '<div class="pab-alert pab-alert-warning">
-            <strong>⚠️ Atenção:</strong> Esta avaliação não está vinculada a um paciente. Se chegou pelo botão "Cadastrar Avaliação" do paciente, será vinculada automaticamente ao salvar.
+            <strong>⚠️ Atenção:</strong> Estas medidas não estão vinculadas a um paciente. Se chegou pelo botão "Cadastrar Medidas" do paciente, será vinculada automaticamente ao salvar.
         </div>';
         return;
     }

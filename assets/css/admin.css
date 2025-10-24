@@ -606,3 +606,246 @@
         background-color: transparent;
     }
 }
+
+/* ================================================================
+   ESTILOS ESPECÍFICOS PARA MEDIDAS
+   ================================================================ */
+
+/* Grid de medidas corporais */
+.pab-medidas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.pab-medidas-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.pab-medidas-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.pab-medidas-card:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+    transform: translateY(-2px);
+}
+
+.pab-medidas-card:hover::before {
+    transform: scaleX(1);
+}
+
+.pab-medidas-section h4 {
+    margin: 0 0 16px 0;
+    color: #1e40af;
+    font-size: 16px;
+    font-weight: 600;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pab-field-row {
+    margin-bottom: 16px;
+}
+
+.pab-field-row:last-child {
+    margin-bottom: 0;
+}
+
+.pab-field-row label {
+    display: block;
+    margin-bottom: 6px;
+    color: #374151;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.pab-field-row input[type="text"],
+.pab-field-row input[type="number"] {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.pab-field-row input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    transform: translateY(-1px);
+}
+
+.pab-unit {
+    color: #6b7280;
+    font-size: 13px;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+.pab-icon {
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+/* Histórico de medidas */
+.pab-historico-container {
+    max-height: 600px;
+    overflow-y: auto;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    background: white;
+}
+
+.pab-historico-item {
+    border-bottom: 1px solid #f1f5f9;
+    padding: 16px;
+    transition: background-color 0.2s ease;
+}
+
+.pab-historico-item:last-child {
+    border-bottom: none;
+}
+
+.pab-historico-item:hover {
+    background-color: #f8fafc;
+}
+
+.pab-historico-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.pab-historico-data {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e40af;
+}
+
+.pab-btn-small {
+    padding: 4px 8px;
+    font-size: 12px;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.pab-btn-view {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.pab-btn-view:hover {
+    background: #0369a1;
+    color: white;
+}
+
+.pab-btn-edit {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.pab-btn-edit:hover {
+    background: #d97706;
+    color: white;
+}
+
+.pab-medidas-grid-small {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.pab-medida-item {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border-left: 3px solid #3b82f6;
+}
+
+.pab-medida-label {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 2px;
+}
+
+.pab-medida-valor {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.pab-no-data {
+    color: #9ca3af;
+    font-style: italic;
+    font-size: 13px;
+}
+
+/* Comparações e diferenças */
+.pab-diferenca {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.pab-diferenca.positiva {
+    background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+    color: #dc2626;
+}
+
+.pab-diferenca.negativa {
+    background: linear-gradient(135deg, #bbf7d0 0%, #86efac 100%);
+    color: #16a34a;
+}
+
+.pab-diferenca.neutra {
+    background: #e5e7eb;
+    color: #6b7280;
+}
+
+/* Responsividade para medidas */
+@media screen and (max-width: 1024px) {
+    .pab-medidas-grid {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 16px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .pab-medidas-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .pab-medidas-grid-small {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+    }
+}
