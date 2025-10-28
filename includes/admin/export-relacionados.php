@@ -22,7 +22,7 @@ add_action('admin_init', function () {
     }
 
     $action = sanitize_key($_GET['pab_action']);
-
+    
     switch ($action) {
         case 'export_bioimpedancias':
             pab_export_bioimpedancias_csv();
@@ -55,11 +55,10 @@ function pab_export_related_data_csv($cpt, $filename_prefix, $meta_keys_map)
     fprintf($f, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
     // Headers Padrão + Headers Específicos
-    // CORRIGIDO: Adicionado paciente_id
     $standard_headers = ['paciente_id', 'paciente_email', 'data_registro'];
     $specific_labels = array_keys($meta_keys_map);
     $meta_keys = array_values($meta_keys_map);
-
+    
     fputcsv($f, array_merge($standard_headers, $specific_labels));
 
     $items = get_posts([
@@ -75,7 +74,7 @@ function pab_export_related_data_csv($cpt, $filename_prefix, $meta_keys_map)
     foreach ($items as $item) {
         $patient_id = $item->post_parent;
         $email = '';
-
+        
         if ($patient_id > 0) {
             if (isset($patient_email_cache[$patient_id])) {
                 $email = $patient_email_cache[$patient_id];
@@ -86,11 +85,11 @@ function pab_export_related_data_csv($cpt, $filename_prefix, $meta_keys_map)
         }
 
         $row = [
-            'paciente_id' => $patient_id, // CORREÇÃO: Adicionado ID
+            'paciente_id' => $patient_id,
             'paciente_email' => $email,
             'data_registro' => $item->post_date,
         ];
-
+        
         foreach ($meta_keys as $meta_key) {
             $value = get_post_meta($item->ID, $meta_key, true);
             if (is_array($value)) {
@@ -98,7 +97,7 @@ function pab_export_related_data_csv($cpt, $filename_prefix, $meta_keys_map)
             }
             $row[] = $value;
         }
-
+        
         fputcsv($f, $row);
     }
 
@@ -178,7 +177,7 @@ function pab_export_avaliacoes_csv()
         'Cirurgias' => 'pab_av_cirurg',
         // Ginecológico
         'Gestações' => 'pab_av_gine_gesta',
-        'Partos'O' => 'pab_av_gine_partos',
+        'Partos' => 'pab_av_gine_partos', // CORRIGIDO AQUI
         'Abortos' => 'pab_av_gine_abortos',
         'Filhos' => 'pab_av_gine_filhos',
         'Menarca' => 'pab_av_gine_menarca',
