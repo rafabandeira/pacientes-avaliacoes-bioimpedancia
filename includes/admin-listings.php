@@ -137,6 +137,62 @@ add_filter("manage_pab_medidas_posts_columns", function ($cols) {
 });
 
 /**
+ * Define as colunas personalizadas na listagem de Bioimpedância.
+ */
+add_filter("manage_pab_bioimpedancia_posts_columns", function ($cols) {
+    unset($cols["date"]);
+
+    $new_cols = [
+        "cb" => $cols["cb"],
+        "title" => __("Título", "pab"),
+        "pab_paciente" => __("Paciente", "pab"),
+        "pab_imc" => __("IMC", "pab"),
+        "date" => __("Data", "pab"),
+    ];
+
+    return $new_cols;
+});
+
+/**
+ * Popula as colunas personalizadas da Bioimpedância.
+ */
+add_action(
+    "manage_pab_bioimpedancia_posts_custom_column",
+    function ($col, $post_id) {
+        switch ($col) {
+            case "pab_paciente":
+                $patient_id = get_post($post_id)->post_parent;
+                if ($patient_id) {
+                    $patient_name = get_the_title($patient_id);
+                    $edit_link = get_edit_post_link($patient_id);
+                    echo '<a href="' .
+                        esc_url($edit_link) .
+                        '">' .
+                        esc_html($patient_name) .
+                        "</a>";
+                } else {
+                    echo '<span style="color: #dc3545;">Não vinculado</span>';
+                }
+                break;
+
+            case "pab_imc":
+                $peso = floatval(pab_get($post_id, "pab_bi_peso"));
+                $patient_id = get_post($post_id)->post_parent;
+                $altura = floatval(pab_get($patient_id, "pab_altura")) / 100; // converter cm para metros
+                if ($peso && $altura) {
+                    $imc = $peso / ($altura * $altura);
+                    echo number_format($imc, 1, ",", ".");
+                } else {
+                    echo "-";
+                }
+                break;
+        }
+    },
+    10,
+    2,
+);
+
+/**
  * Popula as colunas personalizadas das Medidas.
  */
 add_action(
