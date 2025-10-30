@@ -56,7 +56,7 @@ function pab_paciente_dados_cb($post)
         <label><strong>Celular/WhatsApp</strong><input type="text" name="pab_celular" value="<?php echo esc_attr(
             $f["pab_celular"],
         ); ?>" /></label>
-        <label><strong>E-mail</strong><input type="email" name="pab_email" value="<?php echo esc_attr(
+        <label><strong>E-mail</strong><input type="email" name="pab_email" class="pab-input" value="<?php echo esc_attr(
             $f["pab_email"],
         ); ?>" /></label>
     </div>

@@ -70,43 +70,99 @@ jQuery(function ($) {
   // APRIMORAMENTOS DE INPUTS
   // ================================================================
 
+  function formatPhoneNumber(value) {
+    value = value.replace(/\D/g, "");
+    if (value.length <= 11) {
+      if (value.length > 2) {
+        value = "(" + value.substring(0, 2) + ") " + value.substring(2);
+      }
+      if (value.length > 9) {
+        value = value.substring(0, 10) + "-" + value.substring(10);
+      }
+      return value;
+    }
+    return value.substring(0, 11);
+  }
+
   function enhanceFormInputs() {
+    // Formatar números de telefone existentes
+    $('input[name="pab_celular"]').each(function () {
+      const $input = $(this);
+      $input.val(formatPhoneNumber($input.val()));
+    });
+
+    // Formatação do telefone em tempo real
+    $('input[name="pab_celular"]').on("input", function (e) {
+      let value = e.target.value.replace(/\D/g, "");
+      if (value.length <= 11) {
+        if (value.length > 2) {
+          value = "(" + value.substring(0, 2) + ") " + value.substring(2);
+        }
+        if (value.length > 9) {
+          value = value.substring(0, 10) + "-" + value.substring(10);
+        }
+        $(this).val(value);
+      } else {
+        $(this).val(value.substring(0, 11));
+      }
+    });
+
     // Adicionar feedback visual aos inputs
-    $('.pab-grid input[type="number"], .pab-grid input[type="text"]').each(
-      function () {
-        const $input = $(this);
-        const $label = $input.closest("label");
-
-        // Adicionar ícone de validação
-        $input.on("input blur", function () {
-          const value = $(this).val();
-          const $existingIcon = $label.find(".pab-validation-icon");
-          $existingIcon.remove();
-
-          if (
-            value &&
-            value !== "" &&
-            !isNaN(value) &&
-            parseFloat(value) >= 0
-          ) {
-            $label.append(
-              '<span class="pab-validation-icon" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #10b981; font-size: 14px;">✓</span>',
-            );
-            $input.css("border-color", "#10b981");
-          } else if (value === "" || value === null) {
-            $input.css("border-color", "#e2e8f0");
-          } else {
-            $label.append(
-              '<span class="pab-validation-icon" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #dc2626; font-size: 14px;">✗</span>',
-            );
-            $input.css("border-color", "#dc2626");
-          }
+    // Aplicar estilos consistentes em todos os inputs
+    $(
+      '.pab-grid input[type="number"], .pab-grid input[type="text"], .pab-grid input[type="email"]',
+    ).each(function () {
+      $(this).addClass("pab-input");
+      const type = $(this).attr("type");
+      if (type === "email") {
+        $(this).css({
+          padding: "8px 12px",
+          border: "1px solid #e2e8f0",
+          "border-radius": "4px",
+          width: "100%",
+          "box-sizing": "border-box",
+          "font-size": "14px",
+          "line-height": "1.5",
+          transition: "border-color 0.2s ease-in-out",
         });
+      }
+      const $input = $(this);
+      const $label = $input.closest("label");
 
-        // Posição relativa para o ícone
-        $label.css("position", "relative");
-      },
-    );
+      // Adicionar ícone de validação
+      $input.on("input blur", function () {
+        const value = $(this).val();
+        const $existingIcon = $label.find(".pab-validation-icon");
+        $existingIcon.remove();
+
+        if (
+          value &&
+          value !== "" &&
+          (($(this).attr("type") === "email" && value.includes("@")) ||
+            ($(this).attr("type") === "number" &&
+              !isNaN(value) &&
+              parseFloat(value) >= 0) ||
+            ($(this).attr("name") === "pab_celular" &&
+              value.replace(/\D/g, "").length >= 10) ||
+            $(this).attr("type") === "text")
+        ) {
+          $label.append(
+            '<span class="pab-validation-icon" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #10b981; font-size: 14px;">✓</span>',
+          );
+          $input.css("border-color", "#10b981");
+        } else if (value === "" || value === null) {
+          $input.css("border-color", "#e2e8f0");
+        } else {
+          $label.append(
+            '<span class="pab-validation-icon" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #dc2626; font-size: 14px;">✗</span>',
+          );
+          $input.css("border-color", "#dc2626");
+        }
+      });
+
+      // Posição relativa para o ícone
+      $label.css("position", "relative");
+    });
 
     // Auto-formatação de números
     $('.pab-grid input[type="number"]').on("blur", function () {
