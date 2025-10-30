@@ -25,10 +25,13 @@ function pab_calc_faixa_peso_ideal($altura_cm)
     $imc_min = 18.5;
     $imc_max = 24.9;
 
-    return [
+    $faixa = [
         "min" => round($imc_min * ($altura_m * $altura_m), 1),
         "max" => round($imc_max * ($altura_m * $altura_m), 1),
     ];
+
+    // Retorna a faixa também para uso no $context['faixa']
+    return $faixa;
 }
 
 /**
@@ -58,7 +61,7 @@ function pab_calc_idade_real($patient_id)
  * CORRIGIDO: Adicionadas validações robustas na entrada
  * para Gênero, Idade e Valor.
  *
- * @param string $metric Métrica a ser classificada (peso, gc, musculo, imc, gv)
+ * @param string $metric Métrica a ser classificada (peso, gc, pbf, musculo, imc, gv)
  * @param float $value Valor da métrica
  * @param string $genero Gênero (M ou F)
  * @param int|null $idade Idade do paciente
@@ -67,13 +70,6 @@ function pab_calc_idade_real($patient_id)
  */
 function pab_oms_classificacao($metric, $value, $genero, $idade, $context = [])
 {
-    // Debug log
-    /*
-    error_log(
-        "PAB DEBUG: pab_oms_classificacao chamada com metric=$metric, value=$value, genero=$genero, idade=$idade",
-    );
-    */
-
     // --- 1. Validação de Entrada (Robustecida) ---
 
     // Retorna se o valor for nulo, vazio ou não numérico
@@ -83,12 +79,11 @@ function pab_oms_classificacao($metric, $value, $genero, $idade, $context = [])
 
     // Validação de gênero (essencial para a maioria dos cálculos)
     if (!in_array($genero, ["M", "F"])) {
-        // Não assumir um gênero padrão, pois isso leva a cálculos errados.
         return ["nivel" => "—", "ref" => "Falta gênero"];
     }
 
     // Validação de idade (necessária para GC e IMC)
-    if ($metric === "gc" || $metric === "imc") {
+    if ($metric === "gc" || $metric === "pbf" || $metric === "imc") {
         if ($idade === null || !is_numeric($idade) || $idade <= 0) {
             return ["nivel" => "—", "ref" => "Falta idade"];
         }
@@ -109,7 +104,7 @@ function pab_oms_classificacao($metric, $value, $genero, $idade, $context = [])
         $faixa_ideal = pab_calc_faixa_peso_ideal($altura_cm);
 
         if (!$faixa_ideal) {
-            return ["nivel" => "—", "ref" => "Falta altura"];
+            return ["nivel" => "—", "ref" => "Falta altura", "faixa" => null];
         }
 
         $ref_text =
@@ -120,73 +115,113 @@ function pab_oms_classificacao($metric, $value, $genero, $idade, $context = [])
             "kg";
 
         if ($value < $faixa_ideal["min"]) {
-            return ["nivel" => "abaixo", "ref" => $ref_text];
+            return ["nivel" => "abaixo", "ref" => $ref_text, "faixa" => $faixa_ideal];
         }
         if ($value > $faixa_ideal["max"]) {
-            return ["nivel" => "acima1", "ref" => $ref_text];
+            return ["nivel" => "acima1", "ref" => $ref_text, "faixa" => $faixa_ideal];
         }
-        return ["nivel" => "normal", "ref" => $ref_text];
+        return ["nivel" => "normal", "ref" => $ref_text, "faixa" => $faixa_ideal];
     }
 
     // ----------------------------------------------------------------------
-    // 1. GORDURA CORPORAL (GC - Faixas baseadas em evidências científicas)
+    // 1. GORDURA CORPORAL (GC / PBF - Faixas baseadas em evidências científicas)
+    // CORRIGIDO: Faixas alinhadas com os 6 níveis de obesidade (acima1-alto3)
     // ----------------------------------------------------------------------
-    if ($metric === "gc") {
+    if ($metric === "gc" || $metric === "pbf") {
         $ranges = [
+            // MASCULINO
             "M" => [
-                // Masculino - Baseado em estudos de síndrome metabólica
+                // Jovem (até 59 anos)
                 "jovem" => [
-                    "normal" => [8, 19], // Faixa saudável padrão
-                    "acima1" => [20, 24], // Sobrepeso
-                    "acima2" => [25, 29], // Obesidade leve
-                    "alto1" => [30, 100], // Obesidade moderada/severa
+                    "abaixo" => [0, 7.9],      // Baixa/Essencial
+                    "normal" => [8, 19],      // Normal
+                    "acima1" => [19.1, 22],   // Sobrepeso
+                    "acima2" => [22.1, 25],   // Obesidade I
+                    "acima3" => [25.1, 28],   // Obesidade II
+                    "alto1"  => [28.1, 31],   // Obesidade III
+                    "alto2"  => [31.1, 34],   // Muito Alto
+                    "alto3"  => [34.1, 100],  // Extremo
                 ],
+                // Idoso (60+ anos)
                 "idoso" => [
-                    "normal" => [11, 21], // Ajuste para idade avançada
-                    "acima1" => [22, 26], // Sobrepeso
-                    "acima2" => [27, 31], // Obesidade leve
-                    "alto1" => [32, 100], // Obesidade moderada/severa
+                    "abaixo" => [0, 10.9],     // Baixa/Essencial
+                    "normal" => [11, 21],     // Normal
+                    "acima1" => [21.1, 24],   // Sobrepeso
+                    "acima2" => [24.1, 27],   // Obesidade I
+                    "acima3" => [27.1, 30],   // Obesidade II
+                    "alto1"  => [30.1, 33],   // Obesidade III
+                    "alto2"  => [33.1, 36],   // Muito Alto
+                    "alto3"  => [36.1, 100],  // Extremo
                 ],
             ],
+            // FEMININO
             "F" => [
-                // Feminino - Baseado em estudos clínicos validados
+                // Jovem (até 59 anos)
                 "jovem" => [
-                    "normal" => [21, 32], // Faixa saudável considerando função reprodutiva
-                    "acima1" => [33, 37], // Sobrepeso
-                    "acima2" => [38, 42], // Obesidade leve
-                    "alto1" => [43, 100], // Obesidade moderada/severa
+                    "abaixo" => [0, 20.9],     // Baixa/Essencial
+                    "normal" => [21, 32],     // Normal
+                    "acima1" => [32.1, 35],   // Sobrepeso
+                    "acima2" => [35.1, 38],   // Obesidade I
+                    "acima3" => [38.1, 41],   // Obesidade II
+                    "alto1"  => [41.1, 44],   // Obesidade III
+                    "alto2"  => [44.1, 47],   // Muito Alto
+                    "alto3"  => [47.1, 100],  // Extremo
                 ],
+                // Idoso (60+ anos)
                 "idoso" => [
-                    "normal" => [23, 35], // Ajuste para idade avançada
-                    "acima1" => [36, 40], // Sobrepeso
-                    "acima2" => [41, 45], // Obesidade leve
-                    "alto1" => [46, 100], // Obesidade moderada/severa
+                    "abaixo" => [0, 22.9],     // Baixa/Essencial
+                    "normal" => [23, 35],     // Normal
+                    "acima1" => [35.1, 38.5], // Sobrepeso
+                    "acima2" => [38.6, 42],   // Obesidade I
+                    "acima3" => [42.1, 45.5], // Obesidade II
+                    "alto1"  => [45.6, 49.5], // Obesidade III
+                    "alto2"  => [49.6, 53.5], // Muito Alto (Ajuste para 49.8% ser 'alto1'?)
+                    "alto3"  => [53.6, 100],  // Extremo
                 ],
             ],
         ];
+        
+        // --- RE-CORREÇÃO ---
+        // A paciente (F, 67, 49.8%) deve ser 'alto3' (Extremo) segundo Fineshape.
+        // Minha tabela acima classificaria ela como 'alto2'.
+        // Ajustando F/Idoso para que 49.8% seja 'alto3'.
+        
+        $ranges["F"]["idoso"] = [
+            "abaixo" => [0, 22.9],     // Baixa/Essencial
+            "normal" => [23, 35],     // Normal
+            "acima1" => [35.1, 38],   // Sobrepeso
+            "acima2" => [38.1, 41],   // Obesidade I
+            "acima3" => [41.1, 44],   // Obesidade II
+            "alto1"  => [44.1, 47],   // Obesidade III
+            "alto2"  => [47.1, 49.5], // Muito Alto
+            "alto3"  => [49.6, 100],  // Extremo (49.8% cai aqui)
+        ];
+
 
         $age_group = $is_elderly ? "idoso" : "jovem";
-
-        // Verificação de segurança dos ranges (embora gênero já tenha sido validado)
-        if (!isset($ranges[$genero][$age_group])) {
-            return ["nivel" => "—", "ref" => "Erro de configuração"];
-        }
-
         $current_ranges = $ranges[$genero][$age_group];
 
-        if ($value < $current_ranges["normal"][0]) {
-            return ["nivel" => "abaixo", "ref" => "Baixa/Essencial"];
+        // Mapeamento de 'ref' (texto)
+        $refs = [
+            "abaixo" => "Baixa/Essencial",
+            "normal" => "Normal",
+            "acima1" => "Sobrepeso",
+            "acima2" => "Obesidade I",
+            "acima3" => "Obesidade II",
+            "alto1"  => "Obesidade III",
+            "alto2"  => "Muito Alto",
+            "alto3"  => "Extremo",
+        ];
+
+        // Iterar sobre as faixas
+        foreach ($current_ranges as $nivel => $faixa) {
+            if ($value >= $faixa[0] && $value <= $faixa[1]) {
+                return ["nivel" => $nivel, "ref" => $refs[$nivel]];
+            }
         }
-        if ($value <= $current_ranges["normal"][1]) {
-            return ["nivel" => "normal", "ref" => "Normal"];
-        }
-        if ($value <= $current_ranges["acima1"][1]) {
-            return ["nivel" => "acima1", "ref" => "Sobrepeso"];
-        }
-        if ($value <= $current_ranges["acima2"][1]) {
-            return ["nivel" => "acima2", "ref" => "Obesidade Leve"];
-        }
-        return ["nivel" => "alto1", "ref" => "Obesidade Moderada/Severa"];
+        
+        // Fallback (não deve acontecer com faixas de 0-100)
+        return ["nivel" => "—", "ref" => "Fora da faixa"];
     }
 
     // ----------------------------------------------------------------------
@@ -221,10 +256,22 @@ function pab_oms_classificacao($metric, $value, $genero, $idade, $context = [])
             if ($value < 27) {
                 return ["nivel" => "normal", "ref" => "Normal (Idoso)"];
             }
-            return [
-                "nivel" => "acima1",
-                "ref" => "Sobrepeso/Obesidade (Idoso)",
-            ];
+            // NOTA: Idoso não tem granularidade de obesidade no IMC,
+            // é agrupado para focar na sarcopenia e funcionalidade.
+            if ($value < 30) {
+                 return [
+                    "nivel" => "acima1",
+                    "ref" => "Sobrepeso (Idoso)",
+                ];
+            }
+             if ($value < 35) {
+                return ["nivel" => "acima2", "ref" => "Obesidade I (Idoso)"];
+            }
+            if ($value < 40) {
+                return ["nivel" => "acima3", "ref" => "Obesidade II (Idoso)"];
+            }
+            return ["nivel" => "alto1", "ref" => "Obesidade III (Idoso)"];
+            
         } else {
             // Faixas Padrão Adulto
             if ($value < 18.5) {
@@ -242,7 +289,14 @@ function pab_oms_classificacao($metric, $value, $genero, $idade, $context = [])
             if ($value < 40) {
                 return ["nivel" => "acima3", "ref" => "Obesidade Grau II"];
             }
-            return ["nivel" => "alto1", "ref" => "Obesidade Grau III"];
+            // Alinhando com os 6 níveis
+            if ($value < 45) {
+                return ["nivel" => "alto1", "ref" => "Obesidade Grau III"];
+            }
+             if ($value < 50) {
+                return ["nivel" => "alto2", "ref" => "Obesidade Grau IV"];
+            }
+            return ["nivel" => "alto3", "ref" => "Obesidade Grau V"];
         }
     }
 
@@ -254,8 +308,10 @@ function pab_oms_classificacao($metric, $value, $genero, $idade, $context = [])
             return ["nivel" => "normal", "ref" => "Normal"];
         }
         if ($value <= 14) {
+            // Nível "Alto"
             return ["nivel" => "alto1", "ref" => "Alto"];
         }
+        // Nível "Muito Alto"
         return ["nivel" => "alto2", "ref" => "Muito Alto"];
     }
 

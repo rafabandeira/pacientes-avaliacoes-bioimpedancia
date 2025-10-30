@@ -48,6 +48,14 @@
     transform: translateY(-1px);
 }
 
+/* CORREÇÃO: Suaviza a cor do placeholder (Grid Geral) */
+.pab-grid input[type="number"]::placeholder,
+.pab-grid input[type="text"]::placeholder,
+.pab-grid textarea::placeholder {
+    color: #cbd5e1; /* Cor cinza ainda mais suave */
+    opacity: 1; /* Necessário para Firefox */
+}
+
 /* ================================================================
    METABOX STYLING - DESIGN CARDS MODERNOS
    ================================================================ */
@@ -696,6 +704,14 @@
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     transform: translateY(-1px);
 }
+
+/* CORREÇÃO: Suaviza a cor do placeholder (Medidas) */
+.pab-field-row input[type="text"]::placeholder,
+.pab-field-row input[type="number"]::placeholder {
+    color: #cbd5e1; /* Cor cinza ainda mais suave */
+    opacity: 1; /* Necessário para Firefox */
+}
+
 
 .pab-unit {
     color: #6b7280;

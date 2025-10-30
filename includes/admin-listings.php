@@ -1,8 +1,30 @@
-<?php // includes/admin-listings.php - CORRIGIDO: Hook 'parse_query' vazio removido.
+<?php // includes/admin-listings.php
 
 if (!defined("ABSPATH")) {
     exit();
 }
+
+/**
+ * Define a ordem padrão da listagem de pacientes para Alfabética (Título ASC).
+ *
+ * @param WP_Query $query A query principal do WordPress.
+ */
+add_action("pre_get_posts", function ($query) {
+    // Aplicar apenas no admin, na query principal e no CPT 'pab_paciente'
+    if (
+        is_admin() &&
+        $query->is_main_query() &&
+        $query->get("post_type") === "pab_paciente"
+    ) {
+        // Se a ordenação não estiver definida na URL, define o padrão
+        if (empty($query->get("orderby"))) {
+            $query->set("orderby", "title");
+        }
+        if (empty($query->get("order"))) {
+            $query->set("order", "ASC");
+        }
+    }
+});
 
 /**
  * Pré-carrega todos os metadados dos posts listados

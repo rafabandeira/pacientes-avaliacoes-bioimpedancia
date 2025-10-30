@@ -107,26 +107,37 @@ add_action(
         }
 
         // 3. Salvamento dos Campos de Medidas
+        // CORREÇÃO: O array de fields estava dessincronizado com os names do form (corporais.php)
         $fields = [
-            "pab_med_peso",
+            // Campo de 'paciente.php' (provavelmente)
+            "pab_med_peso", 
+
+            // Campos de 'corporais.php'
             "pab_med_pescoco",
             "pab_med_torax",
-            "pab_med_braco_d",
-            "pab_med_braco_e",
-            "pab_med_antebraco_d",
-            "pab_med_antebraco_e",
+            "pab_med_braco_direito",     // Corrigido de pab_med_braco_d
+            "pab_med_braco_esquerdo",    // Corrigido de pab_med_braco_e
+            "pab_med_abd_superior",    // Adicionado
             "pab_med_cintura",
-            "pab_med_abdomen",
+            "pab_med_abd_inferior",    // Adicionado
             "pab_med_quadril",
-            "pab_med_coxa_d",
-            "pab_med_coxa_e",
-            "pab_med_panturrilha_d",
-            "pab_med_panturrilha_e",
+            "pab_med_coxa_direita",      // Corrigido de pab_med_coxa_d
+            "pab_med_coxa_esquerda",     // Corrigido de pab_med_coxa_e
+            "pab_med_panturrilha_direita", // Corrigido de pab_med_panturrilha_d
+            "pab_med_panturrilha_esquerda",// Corrigido de pab_med_panturrilha_e
+            
+            // Removidos (não existem no form corporais.php)
+            // "pab_med_antebraco_d",
+            // "pab_med_antebraco_e",
+            // "pab_med_abdomen",
         ];
 
         foreach ($fields as $k) {
             if (isset($_POST[$k])) {
-                $value = sanitize_text_field($_POST[$k]);
+                // Sanitizar como texto permite salvar "35.5" ou "35,5"
+                $value = sanitize_text_field($_POST[$k]); 
+                // Normalizar vírgula para ponto ao salvar
+                $value = str_replace(',', '.', $value); 
                 update_post_meta($post_id, $k, $value);
             }
         }

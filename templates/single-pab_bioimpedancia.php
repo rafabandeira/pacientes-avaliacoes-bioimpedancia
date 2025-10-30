@@ -11,20 +11,21 @@ if (!defined("ABSPATH")) {
 
 /**
  * Função para adicionar OpenGraph tags no head
+ * CORREÇÃO: Agora usa a classificação PBF (c_gc) para o avatar
  */
 function pab_add_bioimpedancia_opengraph(
     $post_id,
     $patient_id,
     $patient_name,
     $patient_gender,
-    $c_imc,
+    $c_gc // CORREÇÃO: Recebe a classificação de Gordura Corporal
 ) {
     if (is_admin()) {
         return;
     }
 
-    // Determinar avatar baseado no IMC
-    $nivel = $c_imc["nivel"];
+    // Determinar avatar baseado no PBF (Gordura Corporal)
+    $nivel = $c_gc["nivel"]; // CORREÇÃO: Usar o nível da gordura
     $prefix = $patient_gender === "F" ? "f" : "m";
 
     // Usar avatar cropped focado na cabeça para OpenGraph
@@ -56,22 +57,21 @@ function pab_add_bioimpedancia_opengraph(
     $description = "Relatório completo de bioimpedância de {$patient_name}. Análise detalhada da composição corporal com base nos padrões da OMS.";
     $url = get_permalink();
 
-    // Labels para classificação IMC
-    $labels_imc = [
+    // Labels para classificação (usando PBF)
+    $labels_gc = [
         "abaixo" => "Baixo Peso",
         "normal" => "Normal",
-        "acima1" => "Acima I",
-        "acima2" => "Acima II",
-        "acima3" => "Acima III",
-        "alto1" => "Alto I",
-        "alto2" => "Alto II",
-        "alto3" => "Alto III",
+        "acima1" => "Sobrepeso",
+        "acima2" => "Obesidade I",
+        "acima3" => "Obesidade II",
+        "alto1" => "Obesidade III",
+        "alto2" => "Muito Alto",
+        "alto3" => "Extremo",
     ];
 
-    $classificacao = $labels_imc[$nivel] ?? "Normal";
-    $description .= " Classificação IMC: {$classificacao}.";
+    $classificacao = $labels_gc[$nivel] ?? "Normal";
+    $description .= " Classificação de Gordura: {$classificacao}.";
     ?>
-    <!-- OpenGraph Tags -->
     <meta property="og:title" content="<?php echo esc_attr($title); ?>" />
     <meta property="og:description" content="<?php echo esc_attr(
         $description,
@@ -88,7 +88,6 @@ function pab_add_bioimpedancia_opengraph(
         get_bloginfo("name"),
     ); ?>" />
 
-    <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="<?php echo esc_attr($title); ?>" />
     <meta name="twitter:description" content="<?php echo esc_attr(
@@ -96,10 +95,8 @@ function pab_add_bioimpedancia_opengraph(
     ); ?>" />
     <meta name="twitter:image" content="<?php echo esc_url($avatar_img); ?>" />
 
-    <!-- Meta Description -->
     <meta name="description" content="<?php echo esc_attr($description); ?>" />
 
-    <!-- Dados Estruturados JSON-LD -->
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -139,7 +136,7 @@ $patient_height = pab_get($patient_id, "pab_altura");
 
 // Dados da bioimpedância
 $peso = pab_get($post_id, "pab_bi_peso");
-$gordura = pab_get($post_id, "pab_bi_gordura_corporal");
+$gordura = pab_get($post_id, "pab_bi_gordura_corporal"); // PBF (%)
 $musculo = pab_get($post_id, "pab_bi_musculo_esq");
 $gordura_visc = pab_get($post_id, "pab_bi_gordura_visc");
 $metab_basal = pab_get($post_id, "pab_bi_metab_basal");
@@ -154,6 +151,7 @@ $imc = $altura_m && $peso ? round($peso / ($altura_m * $altura_m), 1) : null;
 
 // Classificações OMS
 $c_imc = pab_oms_classificacao("imc", $imc, $patient_gender, $idade_real);
+// CORREÇÃO: Usar 'pbf' ou 'gc' (assumindo que calculations.php aceita ambos)
 $c_gc = pab_oms_classificacao("gc", $gordura, $patient_gender, $idade_real);
 $c_gv = pab_oms_classificacao(
     "gv",
@@ -183,14 +181,14 @@ add_action(
         $patient_id,
         $patient_name,
         $patient_gender,
-        $c_imc,
+        $c_gc // CORREÇÃO: Passar $c_gc (Gordura) em vez de $c_imc
     ) {
         pab_add_bioimpedancia_opengraph(
             $post_id,
             $patient_id,
             $patient_name,
             $patient_gender,
-            $c_imc,
+            $c_gc // CORREÇÃO: Passar $c_gc
         );
     },
     1,
@@ -206,7 +204,6 @@ add_action(
         $patient_name . " - Bioimpedância - " . get_the_date("d/m/Y"),
     ); ?></title>
 
-    <!-- Favicon básico -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 
     <?php wp_head(); ?>
@@ -703,7 +700,6 @@ add_action(
 
 <div class="pab-public-container">
 
-    <!-- Header do Paciente -->
     <div class="pab-public-header">
         <h1><?php echo esc_html($patient_name); ?></h1>
         <div class="meta">
@@ -722,7 +718,6 @@ add_action(
         </div>
     </div>
 
-    <!-- Metabox: Avatares (OMS) -->
     <div class="pab-metabox">
         <div class="pab-metabox-header avatars">
             <span>Avatares (OMS)</span>
@@ -730,49 +725,39 @@ add_action(
         <div class="pab-metabox-content">
             <div style="text-align: center; margin-bottom: 20px;">
                 <h4 style="margin: 0 0 8px 0; color: #333; font-size: 16px; font-weight: 600;">
-                    📊 Representação Visual da Composição Corporal (IMC)
+                    🔥 Representação Visual da Composição Corporal (Gordura)
                 </h4>
                 <p style="margin: 0; font-size: 13px; color: #666;">
                     Baseado na classificação da Organização Mundial da Saúde
                 </p>
 
-                <?php if ($imc): ?>
+                <?php if ($gordura): ?>
                     <div style="margin: 15px 0; padding: 12px; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; display: inline-block;">
                         <div style="font-size: 24px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">
-                            IMC: <?php echo esc_html($imc); ?> kg/m²
+                            Gordura: <?php echo esc_html($gordura); ?>%
                         </div>
-                        <div style="font-size: 14px; font-weight: 600; color: <?php echo $c_imc[
+                        <div style="font-size: 14px; font-weight: 600; color: <?php echo $c_gc[
                             "nivel"
                         ] == "normal"
                             ? "#059669"
-                            : ($c_imc["nivel"] == "abaixo"
+                            : ($c_gc["nivel"] == "abaixo"
                                 ? "#0891b2"
                                 : "#dc2626"); ?>;">
-                            <?php echo esc_html($c_imc["ref"]); ?>
+                            <?php echo esc_html($c_gc["ref"]); ?>
                         </div>
                     </div>
                 <?php else: ?>
                     <div style="margin: 15px 0; padding: 12px; background: #fef3c7; border: 2px solid #fbbf24; border-radius: 8px; display: inline-block;">
                         <div style="font-size: 14px; color: #92400e; font-weight: 600;">
-                            ⚠️ IMC não calculado - Dados insuficientes
+                            ⚠️ Gordura Corporal não calculada - Dados insuficientes
                         </div>
                     </div>
                 <?php endif; ?>
             </div>
 
-            <?php if ($imc && $nivel): ?>
-                <div style="text-align: center; margin: 10px 0; padding: 8px; background: #e0f2fe; border-radius: 6px;">
-                    <div style="font-size: 13px; color: #0369a1; font-weight: 600;">
-                        👆 Seu avatar atual: <strong><?php echo esc_html(
-                            $labels_imc[$nivel] ?? "N/A",
-                        ); ?></strong>
-                    </div>
-                </div>
-            <?php endif; ?>
-
             <?php
-            // Avatares baseados na classificação de IMC
-            $nivel = $c_imc["nivel"];
+            // Avatares baseados na classificação de Gordura Corporal (PBF)
+            $nivel = $c_gc["nivel"]; // CORREÇÃO: Usar $c_gc (Gordura)
             $prefix = $patient_gender === "F" ? "f" : "m";
             $levels = [
                 "abaixo",
@@ -785,7 +770,8 @@ add_action(
                 "alto3",
             ];
 
-            $labels_imc = [
+            // Labels para os avatares (mantido genérico, pode ser ajustado)
+            $labels_avatar = [
                 "abaixo" => "Abaixo",
                 "normal" => "Normal",
                 "acima1" => "Acima I",
@@ -797,22 +783,33 @@ add_action(
             ];
             ?>
 
+            <?php if ($gordura && $nivel): ?>
+                <div style="text-align: center; margin: 10px 0; padding: 8px; background: #e0f2fe; border-radius: 6px;">
+                    <div style="font-size: 13px; color: #0369a1; font-weight: 600;">
+                        👆 Seu avatar atual: <strong><?php echo esc_html(
+                            $labels_avatar[$nivel] ?? "N/A",
+                        ); ?></strong>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+
             <div class="pab-avatars-container">
                 <?php foreach ($levels as $lvl): ?>
                     <?php
-                    $active = $lvl === $nivel ? "active" : "";
+                    $active = $lvl === $nivel ? "active" : ""; // $nivel agora é de $c_gc
                     $img = PAB_URL . "assets/img/avatars/{$prefix}-{$lvl}.png";
                     ?>
                     <div class="pab-avatar-wrapper">
                         <div class="pab-avatar <?php echo $active; ?>" title="<?php echo esc_attr(
-    $labels_imc[$lvl],
+    $labels_avatar[$lvl],
 ); ?>">
                             <img src="<?php echo esc_url(
                                 $img,
                             ); ?>" alt="<?php echo esc_attr($lvl); ?>">
                         </div>
                         <div class="pab-avatar-label <?php echo $active; ?>">
-                            <?php echo esc_html($labels_imc[$lvl]); ?>
+                            <?php echo esc_html($labels_avatar[$lvl]); ?>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -820,7 +817,6 @@ add_action(
         </div>
     </div>
 
-    <!-- Metabox: Dados de Bioimpedância -->
     <div class="pab-metabox">
         <div class="pab-metabox-header">
             <span>Dados de Bioimpedância</span>
@@ -833,7 +829,6 @@ add_action(
                 </div>
             <?php else: ?>
                 <div class="pab-comp-cards">
-                    <!-- Card: Peso -->
                     <?php if ($peso): ?>
                     <div class="pab-comp-card">
                         <h4><span class="icon">⚖️</span> Peso Corporal</h4>
@@ -843,23 +838,22 @@ add_action(
 
                         <?php if ($patient_height): ?>
                             <?php
-                            $altura_m = $patient_height / 100.0;
-                            $peso_ideal_min = round(
-                                18.5 * ($altura_m * $altura_m),
-                                1,
-                            );
-                            $peso_ideal_max = round(
-                                24.9 * ($altura_m * $altura_m),
-                                1,
-                            );
-                            if ($peso < $peso_ideal_min) {
-                                $delta_peso = $peso - $peso_ideal_min;
-                            } elseif ($peso > $peso_ideal_max) {
-                                $delta_peso = $peso - $peso_ideal_max;
+                            // Recalculando $c_peso (já feito acima)
+                            $peso_ideal_min = $c_peso["faixa"]["min"] ?? null;
+                            $peso_ideal_max = $c_peso["faixa"]["max"] ?? null;
+
+                            if ($peso_ideal_min && $peso_ideal_max) {
+                                if ($peso < $peso_ideal_min) {
+                                    $delta_peso = $peso - $peso_ideal_min;
+                                } elseif ($peso > $peso_ideal_max) {
+                                    $delta_peso = $peso - $peso_ideal_max;
+                                } else {
+                                    $peso_medio_ideal =
+                                        ($peso_ideal_min + $peso_ideal_max) / 2;
+                                    $delta_peso = $peso - $peso_medio_ideal;
+                                }
                             } else {
-                                $peso_medio_ideal =
-                                    ($peso_ideal_min + $peso_ideal_max) / 2;
-                                $delta_peso = $peso - $peso_medio_ideal;
+                                $delta_peso = 0;
                             }
                             ?>
                             <div style="margin: 8px 0; padding: 8px; background: #f1f5f9; border-radius: 6px;">
@@ -880,28 +874,11 @@ add_action(
                         <?php endif; ?>
 
                         <div class="pab-comp-ref">
-                            Referência OMS (<?php echo $patient_gender === "F"
-                                ? "Mulher"
-                                : "Homem"; ?>, <?php echo $idade_real; ?> anos):
-                            <?php if ($patient_height) {
-                                $altura_m = $patient_height / 100.0;
-                                $peso_min = round(
-                                    18.5 * ($altura_m * $altura_m),
-                                    1,
-                                );
-                                $peso_max = round(
-                                    24.9 * ($altura_m * $altura_m),
-                                    1,
-                                );
-                                echo $peso_min . " - " . $peso_max . " kg";
-                            } else {
-                                echo "IMC 18.5 - 24.9 kg/m²";
-                            } ?>
+                            <?php echo esc_html($c_peso["ref"]); ?>
                         </div>
                     </div>
                     <?php endif; ?>
 
-                    <!-- Card: Gordura Corporal -->
                     <?php if ($gordura): ?>
                     <div class="pab-comp-card" style="border-left-color: #f59e0b;">
                         <h4><span class="icon">🔥</span> Gordura Corporal</h4>
@@ -925,31 +902,17 @@ add_action(
                         <?php endif; ?>
 
                         <div class="pab-comp-ref">
-                            Referência OMS (<?php echo $patient_gender === "F"
+                            Classificação:
+                            <strong><?php echo esc_html(
+                                $c_gc["ref"],
+                            ); ?></strong>
+                            (<?php echo $patient_gender === "F"
                                 ? "Mulher"
-                                : "Homem"; ?>, <?php echo $idade_real; ?> anos):
-                            <?php if ($patient_gender === "F") {
-                                if ($idade_real < 40) {
-                                    echo "21 - 33%";
-                                } elseif ($idade_real < 60) {
-                                    echo "23 - 35%";
-                                } else {
-                                    echo "24 - 36%";
-                                }
-                            } else {
-                                if ($idade_real < 40) {
-                                    echo "8 - 20%";
-                                } elseif ($idade_real < 60) {
-                                    echo "11 - 22%";
-                                } else {
-                                    echo "13 - 25%";
-                                }
-                            } ?>
+                                : "Homem"; ?>, <?php echo $idade_real; ?> anos)
                         </div>
                     </div>
                     <?php endif; ?>
 
-                    <!-- Card: Músculo -->
                     <?php if ($musculo): ?>
                     <div class="pab-comp-card" style="border-left-color: #10b981;">
                         <h4><span class="icon">💪</span> Músculo Esquelético</h4>
@@ -973,33 +936,19 @@ add_action(
                         <?php endif; ?>
 
                         <div class="pab-comp-ref">
-                            Referência OMS (<?php echo $patient_gender === "F"
-                                ? "Mulher"
-                                : "Homem"; ?>, <?php echo $idade_real; ?> anos):
-                            <?php if ($patient_gender === "F") {
-                                if ($idade_real < 40) {
-                                    echo "≥ 24%";
-                                } elseif ($idade_real < 60) {
-                                    echo "≥ 23%";
-                                } else {
-                                    echo "≥ 22%";
-                                }
-                            } else {
-                                if ($idade_real < 40) {
-                                    echo "≥ 35%";
-                                } elseif ($idade_real < 60) {
-                                    echo "≥ 34%";
-                                } else {
-                                    echo "≥ 33%";
-                                }
-                            } ?>
+                             Classificação:
+                            <strong><?php echo esc_html(
+                                $c_musculo["ref"],
+                            ); ?></strong>
+                             (<?php echo $patient_gender === "F"
+                                 ? "Mulher"
+                                 : "Homem"; ?>)
                         </div>
                     </div>
                     <?php endif; ?>
 
 
 
-                    <!-- Card: Gordura Visceral -->
                     <?php if ($gordura_visc): ?>
                     <div class="pab-comp-card" style="border-left-color: #ef4444;">
                         <h4><span class="icon">🫀</span> Gordura Visceral</h4>
@@ -1007,21 +956,21 @@ add_action(
                             $gordura_visc,
                         ); ?></div>
                         <div class="pab-comp-ref">
-                            Referência OMS (<?php echo $patient_gender === "F"
-                                ? "Mulher"
-                                : "Homem"; ?>, <?php echo $idade_real; ?> anos):
-                            Nível 1 - 12 (Normal: ≤ 9)
+                            Classificação:
+                            <strong><?php echo esc_html(
+                                $c_gv["ref"],
+                            ); ?></strong>
+                             (Referência: Normal ≤ 9)
                         </div>
                     </div>
                     <?php endif; ?>
 
-                    <!-- Card: Metabolismo -->
                     <?php if ($metab_basal): ?>
                     <div class="pab-comp-card" style="border-left-color: #8b5cf6;">
                         <h4><span class="icon">⚡</span> Metabolismo Basal</h4>
                         <div class="pab-comp-value"><?php echo esc_html(
                             $metab_basal,
-                        ); ?></div>
+                        ); ?> kcal</div>
 
                         <div style="margin: 8px 0; padding: 8px; background: #f3e8ff; border-radius: 6px;">
                             <strong style="color: #8b5cf6;">
@@ -1034,9 +983,7 @@ add_action(
                         </div>
 
                         <div class="pab-comp-ref">
-                            Referência OMS (<?php echo $patient_gender === "F"
-                                ? "Mulher"
-                                : "Homem"; ?>, <?php echo $idade_real; ?> anos):
+                            Referência (Mifflin-St Jeor):
                             <?php if ($peso && $patient_height && $idade_real) {
                                 if ($patient_gender === "F") {
                                     $tmb_calculado =
@@ -1059,7 +1006,6 @@ add_action(
                     </div>
                     <?php endif; ?>
 
-                    <!-- Card: Idade Corporal -->
                     <?php if ($idade_corp): ?>
                     <div class="pab-comp-card" style="border-left-color: #06b6d4;">
                         <h4><span class="icon">🕐</span> Idade Corporal</h4>
@@ -1081,14 +1027,16 @@ add_action(
                             <div style="margin: 8px 0; padding: 8px; background: <?php echo $delta_idade <=
                             0
                                 ? "#d1fae5"
-                                : "#fef3c7"; ?>; border-radius: 6px;">
+                                : ($delta_idade <= 5
+                                    ? "#fef3c7"
+                                    : "#fee2e2"); ?>; border-radius: 6px;">
                                 <strong style="color: <?php echo $badge_color; ?>;">
                                     <?php if ($delta_idade == 0): ?>
                                         Idade ideal (igual à cronológica)
                                     <?php elseif ($delta_idade > 0): ?>
-                                        +<?php echo $delta_idade; ?> anos mais velha
+                                        +<?php echo $delta_idade; ?> anos (Mais Velha)
                                     <?php else: ?>
-                                        <?php echo $delta_idade; ?> anos mais jovem
+                                        <?php echo $delta_idade; ?> anos (Mais Jovem)
                                     <?php endif; ?>
                                 </strong>
                                 <br>
@@ -1116,7 +1064,6 @@ add_action(
         </div>
     </div>
 
-    <!-- Metabox: Resumo Interpretativo -->
     <?php if ($peso && $gordura && $musculo && $idade_corp): ?>
     <div class="pab-metabox">
         <div class="pab-metabox-header" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); color: #0c4a6e;">
@@ -1202,9 +1149,7 @@ add_action(
                 </p>
             </div>
 
-            <!-- Indicadores visuais -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 20px;">
-                <!-- Indicador Peso -->
                 <div style="text-align: center; padding: 12px; background: <?php echo $c_peso[
                     "nivel"
                 ] == "normal"
@@ -1225,7 +1170,6 @@ add_action(
                     ); ?></div>
                 </div>
 
-                <!-- Indicador Gordura -->
                 <div style="text-align: center; padding: 12px; background: <?php echo $c_gc[
                     "nivel"
                 ] == "normal"
@@ -1238,22 +1182,24 @@ add_action(
                     <div style="font-size: 11px; color: #6b7280;"><?php echo $gordura; ?>%</div>
                 </div>
 
-                <!-- Indicador Músculo -->
                 <div style="text-align: center; padding: 12px; background: <?php echo $c_musculo[
                     "nivel"
                 ] == "normal"
                     ? "#d1fae5"
-                    : "#fee2e2"; ?>; border-radius: 8px;">
+                    : ($c_musculo["nivel"] == "abaixo"
+                        ? "#fee2e2"
+                        : "#d1fae5"); ?>; border-radius: 8px;">
                     <div style="font-size: 18px; margin-bottom: 4px;">
                         <?php echo $c_musculo["nivel"] == "normal"
                             ? "✅"
-                            : "🔴"; ?>
+                            : ($c_musculo["nivel"] == "abaixo"
+                                ? "🔴"
+                                : "✅"); ?>
                     </div>
                     <div style="font-size: 12px; font-weight: 600; color: #374151;">MÚSCULO</div>
                     <div style="font-size: 11px; color: #6b7280;"><?php echo $musculo; ?>%</div>
                 </div>
 
-                <!-- Indicador Idade -->
                 <div style="text-align: center; padding: 12px; background: <?php echo $delta_idade <=
                 0
                     ? "#d1fae5"
@@ -1281,10 +1227,9 @@ add_action(
     </div>
     <?php endif; ?>
 
-    <!-- Rodapé -->
     <div class="pab-footer">
         <p>
-            <strong>Sistema de Bioimpedância da Clínica Thayse Brito</strong><br>
+            <strong>Sistema de Bioimpedância</strong><br>
             Relatório gerado em <?php echo date("d/m/Y \à\s H:i"); ?><br>
             <small>Este documento contém informações confidenciais do paciente.</small>
         </p>
