@@ -27,14 +27,6 @@ add_action("pre_get_posts", function ($query) {
 });
 
 /**
- * Pré-carrega todos os metadados dos posts listados
- *
- * CORREÇÃO: Removido o hook 'parse_query' (linhas 16-56)
- * que estava vazio e não era necessário.
- */
-// add_action( "parse_query", ... ); // Removido
-
-/**
  * Define as colunas personalizadas na listagem de Pacientes.
  */
 add_filter("manage_pab_paciente_posts_columns", function ($cols) {
