@@ -221,7 +221,7 @@ add_action(
             color: #333;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 5px;
         }
 
         .pab-public-container {
@@ -261,7 +261,7 @@ add_action(
         }
 
         .pab-public-header .meta {
-            font-size: 1.2rem;
+            font-size: 0.8rem;
             opacity: 0.9;
             position: relative;
             z-index: 1;
@@ -278,12 +278,13 @@ add_action(
         .pab-metabox-header {
             background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
             color: white;
-            padding: 20px 30px;
+            padding: 10px;
             font-size: 1.5rem;
             font-weight: 600;
             display: flex;
             align-items: center;
             gap: 12px;
+            margin-bottom: 10px;
         }
 
         .pab-metabox-header.avatars {
@@ -291,7 +292,6 @@ add_action(
         }
 
         .pab-metabox-content {
-            padding: 30px;
             background: white;
         }
 
@@ -393,7 +393,7 @@ add_action(
             overflow-x: auto;
             overflow-y: hidden;
             padding: 20px 0 15px 0;
-            margin: 20px 0;
+            margin: 0;
         }
 
         .pab-avatar-wrapper {
@@ -447,48 +447,26 @@ add_action(
             display: block;
         }
 
-        .pab-avatar.active::after {
-            content: "✓";
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            background: #228be6;
-            color: white;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
-        }
 
         .pab-avatar-label {
             margin-top: 8px;
-            font-size: 11px;
+            font-size: 10px;
             color: #999;
             text-align: center;
             font-weight: 500;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
             transition: all 0.3s ease;
         }
 
         .pab-avatar-label.active {
             color: #228be6;
-            font-weight: 700;
-            font-size: 12px;
-            transform: scale(1.05);
         }
 
         /* Cards de composição corporal - padrão medidas */
         .pab-comp-cards {
             display: flex;
             flex-wrap: wrap;
-            gap: 20px;
-            padding: 20px;
+            gap: 10px;
             width: 100%;
         }
 
@@ -499,7 +477,7 @@ add_action(
         .pab-comp-card {
             background: white;
             border-radius: 12px;
-            padding: 25px;
+            padding: 10px;
             border: 1px solid #e2e8f0;
             transition: all 0.3s ease;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
@@ -513,7 +491,7 @@ add_action(
         }
 
         .pab-comp-cards .pab-comp-card h4 {
-                margin: 0 0 20px 0;
+                margin: 0 0 10px 0;
                 font-size: 1.4rem;
                 font-weight: 600;
                 color: #1e40af;
@@ -532,8 +510,8 @@ add_action(
                 font-size: 1.8rem;
                 font-weight: 700;
                 color: #1e40af;
-                margin-bottom: 12px;
-                padding: 12px 16px;
+                margin-bottom: 10px;
+                padding: 10px;
                 background: #f0f9ff;
                 border-radius: 8px;
                 border: 1px solid #dbeafe;
@@ -644,7 +622,7 @@ add_action(
 
             .pab-metabox {
                 break-inside: avoid;
-                margin: 20px 0;
+                margin: 10px 0;
             }
 
             .pab-footer {
@@ -657,7 +635,6 @@ add_action(
         @media (max-width: 768px) {
             .pab-public-container {
                 margin: 10px;
-                padding: 15px;
             }
 
             .pab-public-header {
@@ -724,15 +701,15 @@ add_action(
         </div>
         <div class="pab-metabox-content">
             <div style="text-align: center; margin-bottom: 20px;">
-                <h4 style="margin: 0 0 8px 0; color: #333; font-size: 16px; font-weight: 600;">
+                <h4 style="margin: 10px 0; color: #333; font-size: 16px; font-weight: 600;">
                     🔥 Representação Visual da Composição Corporal (Gordura)
                 </h4>
-                <p style="margin: 0; font-size: 13px; color: #666;">
+                <p style="margin: 0; font-size: 12px; color: #666;">
                     Baseado na classificação da Organização Mundial da Saúde
                 </p>
 
                 <?php if ($gordura): ?>
-                    <div style="margin: 15px 0; padding: 12px; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; display: inline-block;">
+                    <div style="margin: 10px 0; padding: 10px; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; display: inline-block;">
                         <div style="font-size: 24px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">
                             Gordura: <?php echo esc_html($gordura); ?>%
                         </div>
@@ -747,7 +724,7 @@ add_action(
                         </div>
                     </div>
                 <?php else: ?>
-                    <div style="margin: 15px 0; padding: 12px; background: #fef3c7; border: 2px solid #fbbf24; border-radius: 8px; display: inline-block;">
+                    <div style="margin: 10px 0; padding: 10px; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; display: inline-block;">
                         <div style="font-size: 14px; color: #92400e; font-weight: 600;">
                             ⚠️ Gordura Corporal não calculada - Dados insuficientes
                         </div>
@@ -784,7 +761,7 @@ add_action(
             ?>
 
             <?php if ($gordura && $nivel): ?>
-                <div style="text-align: center; margin: 10px 0; padding: 8px; background: #e0f2fe; border-radius: 6px;">
+                <div style="text-align: center; margin: 5px 0; padding: 10px; background: #e0f2fe; border-radius: 6px;">
                     <div style="font-size: 13px; color: #0369a1; font-weight: 600;">
                         👆 Seu avatar atual: <strong><?php echo esc_html(
                             $labels_avatar[$nivel] ?? "N/A",
@@ -801,15 +778,8 @@ add_action(
                     $img = PAB_URL . "assets/img/avatars/{$prefix}-{$lvl}.png";
                     ?>
                     <div class="pab-avatar-wrapper">
-                        <div class="pab-avatar <?php echo $active; ?>" title="<?php echo esc_attr(
-    $labels_avatar[$lvl],
-); ?>">
-                            <img src="<?php echo esc_url(
-                                $img,
-                            ); ?>" alt="<?php echo esc_attr($lvl); ?>">
-                        </div>
-                        <div class="pab-avatar-label <?php echo $active; ?>">
-                            <?php echo esc_html($labels_avatar[$lvl]); ?>
+                        <div class="pab-avatar <?php echo $active; ?>" title="<?php echo esc_attr($labels_avatar[$lvl], ); ?>">
+                            <img src="<?php echo esc_url( $img, ); ?>" alt="<?php echo esc_attr($lvl); ?>">
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -832,8 +802,7 @@ add_action(
                     <?php if ($peso): ?>
                     <div class="pab-comp-card">
                         <h4><span class="icon">⚖️</span> Peso Corporal</h4>
-                        <div class="pab-comp-value"><?php echo esc_html(
-                            $peso,
+                        <div class="pab-comp-value"><?php echo esc_html(                     $peso,
                         ); ?> kg</div>
 
                         <?php if ($patient_height): ?>
@@ -872,10 +841,6 @@ add_action(
                                 <small>Faixa ideal: <?php echo $peso_ideal_min; ?>kg - <?php echo $peso_ideal_max; ?>kg</small>
                             </div>
                         <?php endif; ?>
-
-                        <div class="pab-comp-ref">
-                            <?php echo esc_html($c_peso["ref"]); ?>
-                        </div>
                     </div>
                     <?php endif; ?>
 

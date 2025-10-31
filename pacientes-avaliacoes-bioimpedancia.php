@@ -3,7 +3,7 @@
  * Plugin Name:       Pacientes, Avaliações e Bioimpedâncias
  * Plugin URI:        https://bandeiragroup.com/
  * Description:       Gerencia Pacientes, Avaliações, Bioimpedâncias e Medidas para a Clínica Thayse Brito. Inclui metaboxes, relatórios e gráficos de progresso.
- * Version:           1.1.4
+ * Version:           1.1.5
  * Author:            BandeiraGroup
  * Author URI:        https://bandeiragroup.com/
  * License:           GPLv2 or later
@@ -79,5 +79,3 @@ function pab_deactivation()
 {
     flush_rewrite_rules();
 }
-
-// CORRIGIDO: Removida a chave '}' extra e o bloco de texto duplicado que estavam aqui.
