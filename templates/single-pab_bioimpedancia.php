@@ -193,6 +193,171 @@ add_action(
     },
     1,
 );
+
+
+// =========================================================================
+// FUNÇÕES AUXILIARES PARA COMPARATIVO (Replicadas de historico.php)
+// =========================================================================
+
+/**
+ * Função helper para calcular peso em kg de uma porcentagem
+ */
+if (!function_exists('pab_calc_peso_percentual')) {
+    function pab_calc_peso_percentual($percentual, $peso_total)
+    {
+        if (!$percentual || !$peso_total) {
+            return null;
+        }
+        // $percentual e $peso_total são os valores da bioimpedância em questão
+        return round(($percentual / 100) * $peso_total, 1);
+    }
+}
+
+
+/**
+ * Função helper para exibir diferença com unidade e cor
+ */
+if (!function_exists('pab_format_diff')) {
+    function pab_format_diff($value, $reverse = false, $unit = "")
+    {
+        if ($value == 0 || $value === null) {
+            return '<span style="color: #64748b;">0</span>';
+        }
+        // Formatar valor para 1 casa decimal
+        $value = number_format($value, 1, '.', '');
+
+        $sign = $value > 0 ? "+" : "";
+        $color =
+            $value > 0
+                ? ($reverse // Reverse = true para MB/Músculo/Idade (quanto mais, melhor)
+                    ? "#059669" // Verde para ganho/aumento
+                    : "#dc2626") // Vermelho para ganho/aumento
+                : ($reverse
+                    ? "#dc2626" // Vermelho para perda/diminuição
+                    : "#059669"); // Verde para perda/diminuição
+        $icon =
+            $value > 0
+                ? ($reverse
+                    ? "📈"
+                    : "📉")
+                : ($reverse
+                    ? "📉"
+                    : "📈");
+        return '<span style="color: ' .
+            $color .
+            '; font-weight: 600;">' .
+            $icon .
+            " " .
+            $sign .
+            $value .
+            $unit .
+            "</span>";
+    }
+}
+
+// =========================================================================
+// LÓGICA DE COMPARAÇÃO (Replicada de historico.php)
+// =========================================================================
+
+$current_post = get_post($post_id);
+
+// 1. Buscar todas as bioimpedâncias do paciente (ordenadas por data)
+$query = new WP_Query([
+    "post_type" => "pab_bioimpedancia",
+    "post_parent" => $patient_id,
+    "posts_per_page" => -1,
+    "orderby" => "date",
+    "order" => "ASC",
+    "post_status" => "publish",
+    "fields" => "ids", // Otimização: buscar apenas IDs
+]);
+
+// Se houver menos de 2 avaliações, não exibe o comparativo
+if ($query->post_count < 2) {
+    // Definir posts de comparação como nulos para não exibir a tabela
+    $primeira_post = null;
+    $anterior_post = null;
+} else {
+    $all_bio_ids = $query->posts;
+
+    // 2. Obter a avaliação ATUAL (sendo visualizada)
+    $atual_id = $post_id;
+    $current_index = array_search($atual_id, $all_bio_ids);
+
+    // 3. Obter a PRIMEIRA avaliação
+    $primeira_id = $all_bio_ids[0];
+    $primeira_post = get_post($primeira_id);
+
+    // 4. Obter a ÚLTIMA (ANTERIOR) avaliação
+    $anterior_post = null; // Default
+    if ($current_index > 0) {
+        // Se a avaliação atual não for a primeira, pegue a anterior
+        $anterior_id = $all_bio_ids[$current_index - 1];
+        $anterior_post = get_post($anterior_id);
+    } else {
+        // Se a avaliação atual FOR a primeira, usamos o próprio post para que a coluna
+        // "Última" seja 0.
+        $anterior_id = $atual_id;
+        $anterior_post = $current_post;
+    }
+
+
+    // --- DADOS DA AVALIAÇÃO ATUAL (já estão em $peso, $gordura, etc) ---
+    $atual_peso = (float) $peso;
+    $atual_gc = (float) $gordura;
+    $atual_me = (float) $musculo;
+    $atual_gv = (float) $gordura_visc;
+    $atual_mb = (float) $metab_basal;
+    $atual_idade_corporal = (int) $idade_corp;
+    $atual_imc = $imc;
+
+    // --- DADOS DA PRIMEIRA AVALIAÇÃO ---
+    $p1_peso = (float) pab_get($primeira_id, "pab_bi_peso");
+    $p1_gc = (float) pab_get($primeira_id, "pab_bi_gordura_corporal");
+    $p1_me = (float) pab_get($primeira_id, "pab_bi_musculo_esq");
+    $p1_gv = (float) pab_get($primeira_id, "pab_bi_gordura_visc");
+    $p1_mb = (float) pab_get($primeira_id, "pab_bi_metab_basal");
+    $p1_idade_corporal = (int) pab_get($primeira_id, "pab_bi_idade_corporal");
+    $p1_imc = $altura_m && $p1_peso ? round($p1_peso / ($altura_m * $altura_m), 1) : null;
+
+    // --- DADOS DA AVALIAÇÃO ANTERIOR ("ÚLTIMA" no comparativo) ---
+    $p_ant_peso = (float) pab_get($anterior_id, "pab_bi_peso");
+    $p_ant_gc = (float) pab_get($anterior_id, "pab_bi_gordura_corporal");
+    $p_ant_me = (float) pab_get($anterior_id, "pab_bi_musculo_esq");
+    $p_ant_gv = (float) pab_get($anterior_id, "pab_bi_gordura_visc");
+    $p_ant_mb = (float) pab_get($anterior_id, "pab_bi_metab_basal");
+    $p_ant_idade_corporal = (int) pab_get($anterior_id, "pab_bi_idade_corporal");
+    $p_ant_imc = $altura_m && $p_ant_peso ? round($p_ant_peso / ($altura_m * $altura_m), 1) : null;
+
+
+    // --- CALCULAR DIFERENÇAS ---
+
+    // 1. Diferenças vs. PRIMEIRA (Atual - Primeira)
+    $diff_p1_peso = $atual_peso - $p1_peso;
+    $diff_p1_gc = $atual_gc - $p1_gc;
+    $diff_p1_me = $atual_me - $p1_me;
+    $diff_p1_gv = $atual_gv - $p1_gv;
+    $diff_p1_mb = $atual_mb - $p1_mb;
+    $diff_p1_idade_corporal = $atual_idade_corporal - $p1_idade_corporal;
+    $diff_p1_imc = $atual_imc - $p1_imc;
+
+    // 2. Diferenças vs. ANTERIOR (Atual - Anterior) -> Coluna "Última"
+    $diff_ant_peso = $atual_peso - $p_ant_peso;
+    $diff_ant_gc = $atual_gc - $p_ant_gc;
+    $diff_ant_me = $atual_me - $p_ant_me;
+    $diff_ant_gv = $atual_gv - $p_ant_gv;
+    $diff_ant_mb = $atual_mb - $p_ant_mb;
+    $diff_ant_idade_corporal = $atual_idade_corporal - $p_ant_idade_corporal;
+    $diff_ant_imc = $atual_imc - $p_ant_imc;
+
+    // Calcular diferenças de tempo em dias
+    $data_atual_post = new DateTime($current_post->post_date); // Data da avaliação atual
+    $data_primeira = new DateTime($primeira_post->post_date);
+    $data_anterior = new DateTime($anterior_post->post_date);
+
+    $diff_dias_primeira = $data_atual_post->diff($data_primeira)->days;
+    $diff_dias_anterior = $data_atual_post->diff($data_anterior)->days;
+}
 ?>
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
@@ -694,6 +859,193 @@ add_action(
             <?php endif; ?>
         </div>
     </div>
+
+    <?php if (isset($anterior_post) && $anterior_post): ?>
+    <div class="pab-metabox">
+        <div class="pab-metabox-header" style="background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);">
+            <span>Comparativo de Evolução</span>
+        </div>
+        <div class="pab-metabox-content" style="padding: 20px;">
+            <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px;">
+                <span style="font-size: 20px; margin-right: 8px;">📋</span>Composição Corporal (Atual vs. Histórico)
+            </h4>
+
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; ">
+                    <thead>
+                        <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                            <th style="padding: 10px; text-align: left; color: #64748b; font-weight: 600;">Indicador</th>
+                            <th style="padding: 10px; text-align: center; color: #64748b; font-weight: 600;">Última<br><small>(<?php echo get_the_date("d/m/Y", $anterior_post); ?>)</small></th>
+                            <th style="padding: 10px; text-align: center; color: #64748b; font-weight: 600;">Primeira<br><small>(<?php echo get_the_date("d/m/Y", $primeira_post); ?>)</small></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid #f1f5f9; font-size: 0.8em;">
+                            <td style="padding: 5px; font-weight: 500;">⏱️ Tempo</td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600; color: #64748b;">
+                                <?php echo $diff_dias_anterior; ?> dias
+                            </td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600; color: #64748b;">
+                                <?php echo $diff_dias_primeira; ?> dias
+                            </td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #f1f5f9; font-size: 0.8em;">
+                            <td style="padding: 5px; font-weight: 500;">⚖️ Peso</td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600;"><?php echo pab_format_diff($diff_ant_peso, false, "kg"); ?></td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600;"><?php echo pab_format_diff($diff_p1_peso, false, "kg"); ?></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #f1f5f9; font-size: 0.8em;">
+                            <td style="padding: 5px; font-weight: 500;">📊 IMC</td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600;"><?php echo pab_format_diff($diff_ant_imc, false, ""); ?></td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600;"><?php echo pab_format_diff($diff_p1_imc, false, ""); ?></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #f1f5f9; font-size: 0.8em;">
+                            <td style="padding: 5px; font-weight: 500;">🔥 Gordura</td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600;">
+                                <?php if ($diff_ant_gc != 0 && $p_ant_peso && $atual_peso) {
+                                    $gc_kg_p1 = pab_calc_peso_percentual($p_ant_gc, $p_ant_peso);
+                                    $gc_kg_p2 = pab_calc_peso_percentual($atual_gc, $atual_peso);
+                                    $diff_gc_kg = $gc_kg_p2 - $gc_kg_p1;
+                                    $sign = $diff_ant_gc > 0 ? "+" : ""; $sign_kg = $diff_gc_kg > 0 ? "+" : ""; $color = $diff_ant_gc > 0 ? "#dc2626" : "#059669"; $icon = $diff_ant_gc > 0 ? "📉" : "📈";
+                                    echo '<span style="color: ' . $color . '; font-weight: 600;">' . $icon . " " . $sign . number_format($diff_ant_gc, 1) . "% (" . $sign_kg . number_format($diff_gc_kg, 1) . "kg)</span>";
+                                } else { echo '<span style="color: #64748b;">0</span>'; } ?>
+                            </td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600;">
+                                <?php if ($diff_p1_gc != 0 && $p1_peso && $atual_peso) {
+                                    $gc_kg_p1 = pab_calc_peso_percentual($p1_gc, $p1_peso);
+                                    $gc_kg_p2 = pab_calc_peso_percentual($atual_gc, $atual_peso);
+                                    $diff_gc_kg = $gc_kg_p2 - $gc_kg_p1;
+                                    $sign = $diff_p1_gc > 0 ? "+" : ""; $sign_kg = $diff_gc_kg > 0 ? "+" : ""; $color = $diff_p1_gc > 0 ? "#dc2626" : "#059669"; $icon = $diff_p1_gc > 0 ? "📉" : "📈";
+                                    echo '<span style="color: ' . $color . '; font-weight: 600;">' . $icon . " " . $sign . number_format($diff_p1_gc, 1) . "% (" . $sign_kg . number_format($diff_gc_kg, 1) . "kg)</span>";
+                                } else { echo '<span style="color: #64748b;">0</span>'; } ?>
+                            </td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #f1f5f9; font-size: 0.8em;">
+                            <td style="padding: 5px; font-weight: 500;">💪 Músculo</td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600;">
+                                <?php if ($diff_ant_me != 0 && $p_ant_peso && $atual_peso) {
+                                    $me_kg_p1 = pab_calc_peso_percentual($p_ant_me, $p_ant_peso);
+                                    $me_kg_p2 = pab_calc_peso_percentual($atual_me, $atual_peso);
+                                    $diff_me_kg = $me_kg_p2 - $me_kg_p1;
+                                    $sign = $diff_ant_me > 0 ? "+" : ""; $sign_kg = $diff_me_kg > 0 ? "+" : ""; $color = $diff_ant_me > 0 ? "#059669" : "#dc2626"; $icon = $diff_ant_me > 0 ? "📈" : "📉";
+                                    echo '<span style="color: ' . $color . '; font-weight: 600;">' . $icon . " " . $sign . number_format($diff_ant_me, 1) . "% (" . $sign_kg . number_format($diff_me_kg, 1) . "kg)</span>";
+                                } else { echo '<span style="color: #64748b;">0</span>'; } ?>
+                            </td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600;">
+                                <?php if ($diff_p1_me != 0 && $p1_peso && $atual_peso) {
+                                    $me_kg_p1 = pab_calc_peso_percentual($p1_me, $p1_peso);
+                                    $me_kg_p2 = pab_calc_peso_percentual($atual_me, $atual_peso);
+                                    $diff_me_kg = $me_kg_p2 - $me_kg_p1;
+                                    $sign = $diff_p1_me > 0 ? "+" : ""; $sign_kg = $diff_me_kg > 0 ? "+" : ""; $color = $diff_p1_me > 0 ? "#059669" : "#dc2626"; $icon = $diff_p1_me > 0 ? "📈" : "📉";
+                                    echo '<span style="color: ' . $color . '; font-weight: 600;">' . $icon . " " . $sign . number_format($diff_p1_me, 1) . "% (" . $sign_kg . number_format($diff_me_kg, 1) . "kg)</span>";
+                                } else { echo '<span style="color: #64748b;">0</span>'; } ?>
+                            </td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #f1f5f9; font-size: 0.8em;">
+                            <td style="padding: 5px; font-weight: 500;">🫀 Gord. Visceral</td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600;"><?php echo pab_format_diff($diff_ant_gv, false, ""); ?></td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600;"><?php echo pab_format_diff($diff_p1_gv, false, ""); ?></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #f1f5f9; font-size: 0.8em;">
+                            <td style="padding: 5px; font-weight: 500;">⚡ Met. Basal</td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600;"><?php echo pab_format_diff($diff_ant_mb, true, " kcal"); ?></td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600;"><?php echo pab_format_diff($diff_p1_mb, true, " kcal"); ?></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #f1f5f9; font-size: 0.8em;">
+                            <td style="padding: 5px; font-weight: 500;">🕐 Idade Corporal</td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600;">
+                                <?php if ($diff_ant_idade_corporal != 0) {
+                                    $sign = $diff_ant_idade_corporal > 0 ? "+" : ""; $color = $diff_ant_idade_corporal > 0 ? "#dc2626" : "#059669"; $icon = $diff_ant_idade_corporal > 0 ? "📉" : "📈";
+                                    echo '<span style="color: ' . $color . '; font-weight: 600;">' . $icon . " " . $sign . $diff_ant_idade_corporal . " anos</span>";
+                                } else { echo '<span style="color: #64748b;">0</span>'; } ?>
+                            </td>
+                            <td style="padding: 5px; text-align: center; font-weight: 600;">
+                                <?php if ($diff_p1_idade_corporal != 0) {
+                                    $sign = $diff_p1_idade_corporal > 0 ? "+" : ""; $color = $diff_p1_idade_corporal > 0 ? "#dc2626" : "#059669"; $icon = $diff_p1_idade_corporal > 0 ? "📉" : "📈";
+                                    echo '<span style="color: ' . $color . '; font-weight: 600;">' . $icon . " " . $sign . $diff_p1_idade_corporal . " anos</span>";
+                                } else { echo '<span style="color: #64748b;">0</span>'; } ?>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <?php if (isset($analise) || ($peso && $gordura && $musculo && $idade_corp)): ?>
+            <div style="margin-top: 20px; padding: 16px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px; border-left: 4px solid #0891b2;">
+                <h5 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #0c4a6e;">
+                    💡 Análise de Progresso (vs. Primeira Avaliação)
+                </h5>
+                <p style="margin: 0; font-size: 13px; color: #0f172a; line-height: 1.6;">
+                    <?php
+                    // Gerar análise inteligente (Comparando com a PRIMEIRA)
+                    $analise = [];
+
+                    if (abs($diff_p1_peso) > 0.5) {
+                        if ($diff_p1_peso < 0) {
+                            $analise[] =
+                                "Redução de " .
+                                abs(number_format($diff_p1_peso, 1)) .
+                                " kg no peso corporal";
+                        } else {
+                            $analise[] =
+                                "Ganho de " .
+                                number_format($diff_p1_peso, 1) .
+                                " kg no peso corporal";
+                        }
+                    }
+
+                    if (abs($diff_p1_gc) > 1) {
+                        if ($diff_p1_gc < 0) {
+                            $analise[] =
+                                "Redução de " .
+                                abs(number_format($diff_p1_gc, 1)) .
+                                "% na gordura corporal 🎯";
+                        } else {
+                            $analise[] =
+                                "Aumento de " .
+                                number_format($diff_p1_gc, 1) .
+                                "% na gordura corporal";
+                        }
+                    }
+
+                    if (abs($diff_p1_me) > 0.5) {
+                        if ($diff_p1_me > 0) {
+                            $analise[] =
+                                "Ganho de " .
+                                number_format($diff_p1_me, 1) .
+                                "% em massa muscular 💪";
+                        } else {
+                            $analise[] =
+                                "Redução de " .
+                                abs(number_format($diff_p1_me, 1)) .
+                                "% em massa muscular";
+                        }
+                    }
+
+                    if (empty($analise)) {
+                        echo "Composição corporal mantida estável desde a primeira avaliação.";
+                    } else {
+                        echo "<strong>Desde a primeira avaliação:</strong><br>";
+                        echo "• " . implode("<br>• ", $analise);
+                    }
+                    ?>
+                </p>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php elseif ($patient_id && $query && $query->post_count == 1): ?>
+        <div class="pab-metabox">
+            <div class="pab-metabox-header" style="background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);">
+                <span>Comparativo de Evolução</span>
+            </div>
+            <div class="pab-metabox-content" style="padding: 20px;">
+                <div class="pab-alert pab-alert-info" style="margin: 0;">
+                    <strong>ℹ️ Informação:</strong> Este é o primeiro registro de bioimpedância deste paciente. O comparativo será exibido após a segunda avaliação.
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <div class="pab-metabox">
         <div class="pab-metabox-header avatars">
